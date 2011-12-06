@@ -1,16 +1,10 @@
-PROJECT(pScheduler)
-
-# next few lines are simply to insert icons into
-# the console application on windows
-IF(WIN32)
-    SET(RESOURCES icon1.ico pScheduler.rc)
-ENDIF(WIN32)
+#this builds the pScheduler application
+set(EXECNAME pScheduler)
 
 #what files are needed?
-SET(PSCHEDULER_SRCS MOOSScheduler.cpp MOOSScheduler.h pSchedulerMain.cpp  ${RESOURCES})
+SET(SRCS   MOOSScheduler.cpp  pSchedulerMain.cpp)
 
-# Add executable called pScheduler
-ADD_EXECUTABLE( pScheduler ${PSCHEDULER_SRCS})
+include_directories( ${${EXECNAME}_INCLUDE_DIRS} ${MOOSLib_INCLUDE_DIRS} ${MOOSLib_DEPEND_INCLUDE_DIRS})
+add_executable(${EXECNAME} ${SRCS} )
+target_link_libraries(${EXECNAME} ${MOOSLib_LIBRARIES} ${MOOSLib_DEPEND_LIBRARIES})
 
-# indicate how to link
-TARGET_LINK_LIBRARIES(pScheduler ${MOOSLIBS} ${PLATFORM_LIBS} )

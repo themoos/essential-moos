@@ -1,17 +1,11 @@
-PROJECT(pMOOSBridge)
+#this builds the pMOOSBridge application
+set(EXECNAME pMOOSBridge)
+
+#what files are needed?
+SET(SRCS MOOSBridgeMain.cpp MOOSCommunity.cpp MOOSBridge.cpp  MOOSCommunity.h MOOSBridge.h MOOSUDPLink.cpp MOOSUDPLink.h )
+
+include_directories( ${${EXECNAME}_INCLUDE_DIRS} ${MOOSLib_INCLUDE_DIRS} ${MOOSLib_DEPEND_INCLUDE_DIRS})
+add_executable(${EXECNAME} ${SRCS} )
+target_link_libraries(${EXECNAME} ${MOOSLib_LIBRARIES} ${MOOSLib_DEPEND_LIBRARIES})
 
 
-# next few lines are simply to insert icons into
-# the console application on windows
-IF(WIN32)
-    SET(RESOURCES icon1.ico pMOOSBridge.rc)
-ENDIF(WIN32)
-
-#build a list of files to compile
-SET(PMOOSBRIDGE_SRCS MOOSBridgeMain.cpp MOOSCommunity.cpp MOOSBridge.cpp  MOOSCommunity.h MOOSBridge.h MOOSUDPLink.cpp MOOSUDPLink.h ${RESOURCES})
-
-# Add executable
-ADD_EXECUTABLE( pMOOSBridge ${PMOOSBRIDGE_SRCS})
-
-# Link the executable
-TARGET_LINK_LIBRARIES(pMOOSBridge ${MOOSLIBS} ${PLATFORM_LIBS} )

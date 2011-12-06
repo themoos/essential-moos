@@ -1,26 +1,10 @@
-PROJECT(pAntler)
+#this builds the pLogger application
+set(EXECNAME pAntler)
 
-IF(WIN32)
-    SET(RESOURCES icon1.ico pAntler.rc)
-ENDIF(WIN32)
+#what files are needed?
+SET(SRCS  AntlerMain.cpp Antler.cpp)
 
-
-#build a list of files to compile
-SET(ANTLER_SRCS AntlerMain.cpp Antler.cpp Antler.h)
-IF(WIN32)
-    SET(ANTLER_SRCS ${ANTLER_SRCS} XPCProcess.cpp XPCProcessAttrib.cpp XPCProcess.h XPCProcessAttrib.h ${RESOURCES})
-ENDIF(WIN32)
-
-# Add executable
-ADD_EXECUTABLE( pAntler ${ANTLER_SRCS})
-
-# Link the executable
-TARGET_LINK_LIBRARIES(pAntler ${MOOSLIBS} ${PLATFORM_LIBS} )
-
-
-
-INSTALL(TARGETS
-pAntler
-RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-)
+include_directories( ${${EXECNAME}_INCLUDE_DIRS} ${MOOSLib_INCLUDE_DIRS} ${MOOSLib_DEPEND_INCLUDE_DIRS})
+add_executable(${EXECNAME} ${SRCS} )
+target_link_libraries(${EXECNAME} ${MOOSLib_LIBRARIES} ${MOOSLib_DEPEND_LIBRARIES})
 

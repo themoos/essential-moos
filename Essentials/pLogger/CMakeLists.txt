@@ -1,22 +1,9 @@
-PROJECT(pLogger)
 
-
-
-# next few lines are simply to insert icons into
-# the console application on windows
-IF(WIN32)
-    SET(RESOURCES icon1.ico pLogger.rc)
-ENDIF(WIN32)
+#this builds the pLogger application
+set(EXECNAME pLogger)
 
 #what files are needed?
-SET(PLOGGER_SRCS
- MOOSLogger.cpp
- MOOSLogger.h
- pLoggerMain.cpp
- Zipper.cpp
- Zipper.h
- ${RESOURCES})
-
+SET(SRCS  MOOSLogger.cpp pLoggerMain.cpp Zipper.cpp)
 
 FIND_PACKAGE(ZLIB QUIET)
 IF (ZLIB_FOUND)
@@ -25,17 +12,12 @@ IF (ZLIB_FOUND)
     MESSAGE(STATUS "Cmake FindZLIB: using ZLIB includes at: ${ZLIB_INCLUDE_DIR}")
     MESSAGE(STATUS "Cmake FindZLIB: using ZLIB libraries: ${ZLIB_LIBRARIES}")
 ELSE(ZLIB_FOUND)
-	SET(ZLIB_LIBRARIES "")
+    SET(ZLIB_LIBRARIES "")
 ENDIF (ZLIB_FOUND)
 
+include_directories( ${${EXECNAME}_INCLUDE_DIRS} ${MOOSLib_INCLUDE_DIRS} ${MOOSLib_DEPEND_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS})
+add_executable(${EXECNAME} ${SRCS} )
+target_link_libraries(${EXECNAME} ${MOOSLib_LIBRARIES} ${MOOSLib_DEPEND_LIBRARIES} ${ZLIB_LIBRARIES})
 
-# Add executable called pLogger
-ADD_EXECUTABLE( pLogger ${PLOGGER_SRCS})
 
-# indicate how to link
-TARGET_LINK_LIBRARIES(pLogger ${MOOSLIBS} ${PLATFORM_LIBS} ${ZLIB_LIBRARIES} )
 
-INSTALL(TARGETS
-pLogger
-RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-)
