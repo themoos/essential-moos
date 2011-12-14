@@ -2,7 +2,7 @@
 #define __MOOSTHREADEDTIMEJOURNAL_H
 
 #include <MOOSLIB/MOOSLib.h>
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <Utils/.h>
 
 #include <fstream>
 #include <map>

@@ -16,7 +16,7 @@
 #define ANTLERH
 
 #include <MOOSLIB/MOOSLib.h>
-#include <MOOSGenLib/MOOSGenLib.h>
+#include <Utils/enLib.h>
 #include <string>
 #include <iostream>
 

@@ -30,7 +30,7 @@
 // PitchZPID.cpp: implementation of the CPitchZPID class.
 //
 //////////////////////////////////////////////////////////////////////
-#include <MOOSGenLib/MOOSGenLibGlobalHelper.h>
+#include <Utils/GlobalHelper.h>
 #include <math.h>
 #include "PitchZPID.h"
 

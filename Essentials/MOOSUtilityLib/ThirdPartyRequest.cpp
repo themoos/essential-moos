@@ -34,7 +34,7 @@
     #pragma warning(disable : 4786)
 #endif
 
-#include <MOOSGenLib/MOOSGenLibGlobalHelper.h>
+#include <Utils/GlobalHelper.h>
 #include "ThirdPartyRequest.h"
 
 #include <map>

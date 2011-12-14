@@ -10,9 +10,9 @@
 #ifndef CZIPPERH
 #define CZIPPERH
 
-#include <MOOSGenLib/MOOSThread.h>
+#include <Utils/hread.h>
 #include <string>
-#include <MOOSGenLib/MOOSLock.h>
+#include <UtilsUtils/>
 
 /*!
     @class   CZipper
