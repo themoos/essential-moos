@@ -31,7 +31,7 @@
 //
 //////////////////////////////////////////////////////////////////////
 
-#include "Utils/MOOSGenLibGlobalHelper.h"
+#include "Utils/MOOSUtilityFunctions.h
 #include "ScalarPID.h"
 #include <math.h>
 #include <iostream>
