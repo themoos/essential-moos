@@ -15,8 +15,8 @@
 #ifndef ANTLERH
 #define ANTLERH
 
-#include <MOOSLIB/MOOSLib.h>
-#include <Utils/enLib.h>
+#include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/MOOSUtilityFunctions.h"
 #include <string>
 #include <iostream>
 

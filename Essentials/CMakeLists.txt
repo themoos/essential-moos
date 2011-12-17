@@ -1,3 +1,5 @@
-SET(CORE_DIRS  pMOOSBridge  pAntler pLogger pScheduler)
+add_subdirectory(pMOOSBridge)
+add_subdirectory(pAntler)
+add_subdirectory(pLogger)
+add_subdirectory(pScheduler)
 
-SUBDIRS(${CORE_DIRS})

@@ -30,8 +30,8 @@
 // MOOSCommunity.cpp: implementation of the CMOOSCommunity class.
 //
 //////////////////////////////////////////////////////////////////////
-#include <MOOSLIB/MOOSLib.h>
 #include "MOOSCommunity.h"
+#include "MOOS/libMOOS/MOOSLib.h"
 
 #define DEFAULT_BRIDGE_COMMS_TICK 20
 //////////////////////////////////////////////////////////////////////

@@ -30,7 +30,7 @@
 #ifndef MOOSBridgeh
 #define  MOOSBridgeh
 
-#include <MOOSLIB/MOOSLib.h>
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOSCommunity.h"
 
 class CMOOSBridge

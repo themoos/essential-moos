@@ -35,8 +35,8 @@
 ///////////////////////////////////////////////////////////////////
 
 
+#include "MOOS/libMOOS/MOOSLib.h"
 
-#include <MOOSLIB/MOOSLib.h>
 
 #include "MOOSScheduler.h"
 

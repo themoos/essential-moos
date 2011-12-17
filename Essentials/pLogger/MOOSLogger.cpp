@@ -35,14 +35,15 @@
 #endif
 
 
-#include <MOOSLIB/MOOSApp.h>
-#include <Utils/enLibGlobalHelper.h>
+#include "MOOS/libMOOS/App/MOOSApp.h"
+#include "MOOS/libMOOS/Utils/MOOSUtilityFunctions.h"
+#include "MOOS/libMOOS/Utils/MOOSAssert.h"
+
 #include <time.h>
 #include <iostream>
 #include <stdio.h>
 #include <iomanip>
 #include <algorithm>
-#include <UtilsUtils/.h>
 #include <cmath>
 #include <cstring>
 

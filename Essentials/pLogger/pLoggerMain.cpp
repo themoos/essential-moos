@@ -28,7 +28,7 @@
 //
 //////////////////////////    END_GPL    //////////////////////////////////
 
-#include <MOOSLIB/MOOSLib.h>
+#include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOSLogger.h"
 
 #include <signal.h>

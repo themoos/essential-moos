@@ -8,8 +8,8 @@
  */
 
 #include "MOOSUDPLink.h"
-#include <MOOSLIB/XPCUdpSocket.h>
-#include <MOOSLIB/MOOSException.h>
+#include "MOOS/libMOOS/Comms/XPCUdpSocket.h"
+#include "MOOS/libMOOS/Utils/MOOSException.h"
 
 
 #define MAX_UDP_PKT_SIZE 65536
