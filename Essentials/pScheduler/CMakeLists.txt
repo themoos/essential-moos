@@ -1,6 +1,8 @@
 #this builds the pScheduler application
 set(EXECNAME pScheduler)
 
+find_package(MOOS REQUIRED)
+
 #what files are needed?
 SET(SRCS   MOOSScheduler.cpp  pSchedulerMain.cpp)
 

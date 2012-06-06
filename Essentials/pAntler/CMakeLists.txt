@@ -1,6 +1,8 @@
 #this builds the pLogger application
 set(EXECNAME pAntler)
 
+find_package(MOOS REQUIRED)
+
 #what files are needed?
 SET(SRCS  AntlerMain.cpp Antler.cpp)
 
