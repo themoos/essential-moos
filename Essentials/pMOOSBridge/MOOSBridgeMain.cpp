@@ -52,7 +52,7 @@ int main(int argc,char* argv[])
 
     //sMissionFile = "/Users/pnewman/links/MOOS/Essentials/pMOOSBridge/Examples/V1.moos";
 
-    CMOOSBridge TheBridge;
+    MOOS::Bridge TheBridge;
 
     TheBridge.Run(sMissionFile,sMOOSName);
 
