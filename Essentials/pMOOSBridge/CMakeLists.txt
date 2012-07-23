@@ -1,7 +1,7 @@
 #this builds the pMOOSBridge application
 set(EXECNAME pMOOSBridge)
 
-find_package(MOOS REQUIRED)
+find_package(MOOS 10.0 )
 
 #what files are needed?
 SET(SRCS MOOSBridgeMain.cpp MOOSCommunity.cpp MOOSBridge.cpp  MOOSCommunity.h MOOSBridge.h MOOSUDPLink.cpp MOOSUDPLink.h )
