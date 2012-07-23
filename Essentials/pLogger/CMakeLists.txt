@@ -2,7 +2,7 @@
 #this builds the pLogger application
 set(EXECNAME pLogger)
 
-find_package(MOOS REQUIRED)
+find_package(MOOS 10.0)
 
 #what files are needed?
 SET(SRCS  MOOSLogger.cpp pLoggerMain.cpp Zipper.cpp)
