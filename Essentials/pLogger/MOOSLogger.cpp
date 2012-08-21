@@ -118,6 +118,8 @@ CMOOSLogger::CMOOSLogger()
 	//by default we do not log aux src field
 	m_bLogAuxSrc = false;
 
+	//by default to not mark (with a @) variables being sent from external communities
+	m_bMarkExternalCommunityMessages=  false;
     
     //lets always sort mail by time...
     SortMailByTime(true);
@@ -265,8 +267,7 @@ bool CMOOSLogger::OnStartUp()
 	
     m_MissionReader.GetConfigurationParam("LogAuxSrc",m_bLogAuxSrc);
 	
-
-    
+    m_MissionReader.GetConfigurationParam("MarkExternalCommunityMessages",m_bMarkExternalCommunityMessages);
 
     //do we have a path global name?
     if(!m_MissionReader.GetValue("GLOBALLOGPATH",m_sPath))
@@ -1232,17 +1233,27 @@ bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
 
 				sEntry<<setw(15)<<setprecision(3)<<rMsg.GetTime()-GetAppStartTime()<<' ';
 
-				sEntry<<setw(20)<<rMsg.GetKey().c_str()<<' ';
+				sEntry<<setw(20)<<rMsg.GetKey()<<' ';
 
-				if(!m_bLogAuxSrc)
+				//fill in the src string
+			    std::string sSrcString = rMsg.GetSource();
+
+				if(m_bLogAuxSrc && !rMsg.GetSourceAux().empty() )
 				{
-				    sEntry<<setw(15)<<rMsg.GetSource().c_str()<<' ';
+					//if the AuxSrc string is empty just write nothing
+					sSrcString+=":"+rMsg.GetSourceAux();
 				}
-				else
+				if(m_bMarkExternalCommunityMessages)
 				{
-				    std::string sT = rMsg.GetSource()+":"+(rMsg.GetSourceAux().empty() ? "NO_AUX_SRC" : rMsg.GetSourceAux());
-                    sEntry<<setw(15)<<sT<<' ';
+					//yes we are being asked to log external deliveries
+					if(rMsg.m_sOriginatingCommunity!=m_Comms.GetCommunityName())
+					{
+						//yes this is from an external community
+						sSrcString+="@"+rMsg.m_sOriginatingCommunity;
+					}
 				}
+			    sEntry<<setw(15)<<sSrcString<<' ';
+
 
 				if(rMsg.IsDataType(MOOS_STRING) || rMsg.IsDataType(MOOS_DOUBLE))
 				{
