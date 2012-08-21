@@ -130,6 +130,7 @@ protected:
     bool    m_bWildCardLogging;
 	bool    m_bUseExcludedLog;
 	bool    m_bMarkExternalCommunityMessages;
+	bool    m_bMarkDataType;
 
 	//variables to do with compressed logging...
 	bool	m_bCompressAlog;

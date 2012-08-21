@@ -121,6 +121,9 @@ CMOOSLogger::CMOOSLogger()
 	//by default to not mark (with a @) variables being sent from external communities
 	m_bMarkExternalCommunityMessages=  false;
     
+	//by default do not indicate data tyep with a D: or S: suffix
+	m_bMarkDataType = false;
+
     //lets always sort mail by time...
     SortMailByTime(true);
 
@@ -268,6 +271,8 @@ bool CMOOSLogger::OnStartUp()
     m_MissionReader.GetConfigurationParam("LogAuxSrc",m_bLogAuxSrc);
 	
     m_MissionReader.GetConfigurationParam("MarkExternalCommunityMessages",m_bMarkExternalCommunityMessages);
+
+    m_MissionReader.GetConfigurationParam("MarkDataType",m_bMarkDataType);
 
     //do we have a path global name?
     if(!m_MissionReader.GetValue("GLOBALLOGPATH",m_sPath))
@@ -676,7 +681,6 @@ std::string CMOOSLogger::MakeLogName(string sStem)
     {
         // Print local time as a string
 
-        //ODYSSEYLOG_14_5_1993_____9_30.log
         sTmp = MOOSFormat( "%s_%d_%d_%d_____%.2d_%.2d_%.2d",
             sStem.c_str(),
             Now->tm_mday,
@@ -955,6 +959,8 @@ bool CMOOSLogger::DoBanner(ostream &os, string &sFileName)
     os<<"%% LOG FILE:       "<<sFileName.c_str()<<endl;
     os<<"%% FILE OPENED ON  "<<MOOSGetDate().c_str();
     os<<"%% LOGSTART        "<<setw(20)<<setprecision(12)<<GetAppStartTime()<<endl;
+    if(m_bMarkDataType)
+    	os<<"%% DATATYPE MARKING ON\n";
     os<<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
 
     return true;
@@ -1257,7 +1263,10 @@ bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
 
 				if(rMsg.IsDataType(MOOS_STRING) || rMsg.IsDataType(MOOS_DOUBLE))
 				{
-					sEntry<<rMsg.GetAsString(12,m_nDoublePrecision).c_str()<<' ';
+					if(m_bMarkDataType)
+						sEntry<<(rMsg.IsDouble() ? "D:" : "S:");
+
+					sEntry<<rMsg.GetAsString(12,m_nDoublePrecision)<<' ';
 				}
 				else if(rMsg.IsDataType(MOOS_BINARY_STRING))
 				{
