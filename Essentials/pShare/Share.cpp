@@ -12,7 +12,10 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include "MOOS/libMOOS/Utils/SafeList.h"
+#include "MulticastListener.h"
 #include "MOOS/libMOOS/App/MOOSApp.h"
+
 
 #include "Share.h"
 
@@ -35,6 +38,8 @@ struct ShareInfo {
 
 };
 
+
+
 class Share::Impl: public CMOOSApp {
 public:
 	bool OnNewMail(MOOSMSG_LIST & new_mail);
@@ -42,6 +47,7 @@ public:
 	bool AddRoute(std::string share_specification);
 	bool Route(CMOOSMsg & msg);
 	bool OnStartUp();
+	bool Iterate();
 
 private:
 	bool AddMulticastSocketForOutgoingTraffic(const std::string & socket_name,
@@ -52,6 +58,10 @@ private:
 
 	typedef std::map<std::string, ShareInfo> ShareInfoMap;
 	ShareInfoMap routing_table_;
+
+	SafeList<CMOOSMsg > incoming_queue_;
+	std::map<std::string, MulticastListener*> listeners_;
+
 };
 
 Share::Share() :_Impl(new Impl)
@@ -69,8 +79,53 @@ bool Share::Impl::OnStartUp()
 
 	AddRoute("src_name=X, dest_name=Y ");
 
+	listeners_["DEFAULT"] = new MulticastListener(incoming_queue_,DEFAULT_GROUP_ADDRESS,DEFAULT_GROUP_PORT);
+	listeners_["DEFAULT"]->Run();
+
 	return true;
 }
+
+
+
+bool Share::Impl::Iterate()
+{
+	if(incoming_queue_.Size()!=0)
+	{
+		CMOOSMsg new_msg;
+		if(incoming_queue_.Pull(new_msg))
+		{
+			std::cerr<<"posting ";
+			new_msg.Trace();
+			m_Comms.Post(new_msg);
+		}
+	}
+	return true;
+}
+
+bool Share::Impl::OnNewMail(MOOSMSG_LIST & new_mail)
+{
+	MOOSMSG_LIST::iterator q;
+
+	//for all mail
+	for(q = new_mail.begin();q != new_mail.end();q++)
+	{
+		//do we need to forward it
+		ShareInfoMap::iterator g = routing_table_.find(q->GetKey());
+		if(g != routing_table_.end()){
+			try {
+				//yes OK - try to do so
+				std::cerr<<"Routeing";
+				Route(*q);
+			}catch(const std::exception & e){
+				std::cerr << "caught an exception reason was: " << e.what() << std::endl;
+			}
+		}
+
+	}
+
+	return true;
+}
+
 
 bool Share::Impl::AddRoute(std::string share_specification)
 {
@@ -105,30 +160,6 @@ bool Share::Impl::AddRoute(const ShareInfo & share_info)
 
 	//finally add this toour routing bale
 	routing_table_[share_info.src_name] = share_info;
-
-	return true;
-}
-
-bool Share::Impl::OnNewMail(MOOSMSG_LIST & new_mail)
-{
-	MOOSMSG_LIST::iterator q;
-
-	//for all mail
-	for(q = new_mail.begin();q != new_mail.end();q++)
-	{
-		//do we need to forward it
-		ShareInfoMap::iterator g = routing_table_.find(q->GetKey());
-		if(g != routing_table_.end()){
-			try {
-				//yes OK - try to do so
-				std::cerr<<"Routeing";
-				Route(*q);
-			}catch(const std::exception & e){
-				std::cerr << "caught an exception reason was: " << e.what() << std::endl;
-			}
-		}
-
-	}
 
 	return true;
 }
@@ -224,6 +255,7 @@ int Share::Run(int argc,char * argv[])
 	{
 		std::cerr<<"oops: "<<e.what();
 	}
+	return 0;
 }
 
 

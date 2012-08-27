@@ -5,8 +5,8 @@
  *      Author: pnewman
  */
 
-#ifndef SHARE_H_
-#define SHARE_H_
+#ifndef MOOS_ESSENTIAL_SHARE_H_
+#define MOOS_ESSENTIAL_SHARE_H_
 
 /*
  *
@@ -26,4 +26,4 @@ private:
 
 }
 
-#endif /* SHARE_H_ */
+#endif /* MOOS_ESSENTIAL_SHARE_H_ */
