@@ -10,7 +10,7 @@
 #include <string>
 #include <stdexcept>
 #include <iostream>
-#include "MulticastListener.h"
+#include "Listener.h"
 
 
 
@@ -18,25 +18,26 @@ namespace MOOS {
 
 
 
-MulticastListener::MulticastListener(SafeList<CMOOSMsg> & queue,
+Listener::Listener(SafeList<CMOOSMsg> & queue,
 		const std::string & address,
-		int port):queue_(queue), address_(address), port_(port) {
+		int port,
+		bool multicast):queue_(queue), address_(address), port_(port),multicast_(multicast) {
 	// TODO Auto-generated constructor stub
 
 }
 
-MulticastListener::~MulticastListener() {
+Listener::~Listener() {
 	// TODO Auto-generated destructor stub
 }
 
 
-bool MulticastListener::Run()
+bool Listener::Run()
 {
 	thread_.Initialise(dispatch, this);
 	return thread_.Start();
 }
 
-bool MulticastListener::ListenLoop()
+bool Listener::ListenLoop()
 {
 
 	//set up socket....
@@ -66,34 +67,38 @@ bool MulticastListener::ListenLoop()
 	if (bind(socket_fd, (struct sockaddr*) &mc_addr, sizeof(mc_addr)) == -1)
 		throw std::runtime_error("MulticastListener::Run()::bind");
 
-	//join the multicast group
-	struct ip_mreq mreq;
-	mreq.imr_multiaddr.s_addr = inet_addr(address_.c_str());
-	mreq.imr_interface.s_addr = INADDR_ANY;
-	if(setsockopt(socket_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq))==-1)
-		throw std::runtime_error("MulticastReceiver::Run()::setsockopt::ADD_MEMBERSHIP");
+	if(multicast_)
+	{
+		//join the multicast group
+		struct ip_mreq mreq;
+		mreq.imr_multiaddr.s_addr = inet_addr(address_.c_str());
+		mreq.imr_interface.s_addr = INADDR_ANY;
+		if(setsockopt(socket_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq))==-1)
+			throw std::runtime_error("MulticastReceiver::Run()::setsockopt::ADD_MEMBERSHIP");
+	}
 
 
 	//make a receive buffer
 	std::vector<unsigned char > incoming_buffer(2*64*1024);
-	std::vector<unsigned char > serialisation_buffer(2*64*1024);
-
 
 	while(!thread_.IsQuitRequested())
 	{
 		//read socket blocking
-		int num_bytes_read = read(socket_fd, incoming_buffer.data(), incoming_buffer.size());
-		if(num_bytes_read)
+		int num_bytes_read = read(socket_fd,
+				incoming_buffer.data(),
+				incoming_buffer.size());
+
+		if(num_bytes_read>0)
 		{
 			std::cerr<<"read "<<num_bytes_read<<std::endl;
+
+			//deserialise
+			CMOOSMsg msg;
+			msg.Serialize(incoming_buffer.data(), incoming_buffer.size(), false);
+
+			//push onto queue
+			queue_.Push(msg);
 		}
-
-		//deserialise
-		CMOOSMsg msg;
-		msg.Serialize(incoming_buffer.data(), incoming_buffer.size(), false);
-
-		//push onto queue
-		queue_.Push(msg);
 
 	}
 

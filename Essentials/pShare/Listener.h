@@ -17,23 +17,26 @@
 
 namespace MOOS {
 
-class MulticastListener {
+class Listener {
 public:
 
-	MulticastListener(SafeList<CMOOSMsg> & queue, const std::string & address, int port);
-	virtual ~MulticastListener();
+	Listener(SafeList<CMOOSMsg> & queue, const std::string & address, int port,bool multicast);
+	virtual ~Listener();
 	bool Run();
+	std::string address(){return address_;};
+	int port(){return port_;};
 protected:
 	bool ListenLoop();
 	CMOOSThread thread_;
 	SafeList<CMOOSMsg > & queue_;
 	std::string address_;
 	int port_;
+	bool multicast_;
 
 public:
 	static bool dispatch(void * pParam)
 	{
-		MulticastListener* pMe = (MulticastListener*)pParam;
+		Listener* pMe = (Listener*)pParam;
 		return pMe->ListenLoop();
 	}
 
