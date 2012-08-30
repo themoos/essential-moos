@@ -90,7 +90,6 @@ bool Listener::ListenLoop()
 
 		if(num_bytes_read>0)
 		{
-			std::cerr<<"read "<<num_bytes_read<<std::endl;
 
 			//deserialise
 			CMOOSMsg msg;
