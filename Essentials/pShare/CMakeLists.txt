@@ -4,7 +4,7 @@ set(EXECNAME pShare)
 find_package(MOOS 10.0)
 
 #what files are needed?
-SET(SRCS   Share.cpp Listener.cpp pShareMain.cpp)
+SET(SRCS   Share.cpp Listener.cpp Route.cpp pShareMain.cpp)
 
 include_directories( ${${EXECNAME}_INCLUDE_DIRS} ${MOOS_INCLUDE_DIRS} ${MOOS_DEPEND_INCLUDE_DIRS})
 add_executable(${EXECNAME} ${SRCS} )
