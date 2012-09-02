@@ -29,6 +29,7 @@
 #define DEFAULT_MULTICAST_GROUP_ADDRESS "224.1.1.11"
 #define DEFAULT_MULTICAST_GROUP_PORT 90000
 #define MAX_MULTICAST_CHANNELS 256
+#define MAX_UDP_SIZE 48*1024
 
 #define RED MOOS::ConsoleColours::Red()
 #define GREEN MOOS::ConsoleColours::Green()
@@ -51,6 +52,7 @@ public:
 	bool Iterate();
 	bool OnConnectToServer();
 	bool OnCommandMsg(CMOOSMsg  Msg);
+	bool Run(const std::string & moos_name, const::std::string & moos_file, int argc, char * argv[]);
 
 protected:
 
@@ -80,6 +82,8 @@ protected:
 	bool PrintSocketMap();
 
 private:
+	typedef CMOOSApp BASE;
+
 	//this maps channel number to a multicast socket
 	typedef std::map<MOOS::IPV4Address, Socket> SocketMap;
 	SocketMap socket_map_;
@@ -149,6 +153,22 @@ std::vector<std::string>  Share::Impl::GetRepeatedConfigurations(const std::stri
 }
 
 
+bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_file, int argc, char * argv[])
+{
+	//here we can add some routes specified on command line...
+	//  "./pShare --output 'X->Y multicast_8 multicast_7' 'Z->Q localhost:9000'"
+	GetPot cl(argc,argv);
+
+	std::vector<std::string> outputs = cl.nominus_followers(2,"-o","--output");
+	for(unsigned int i = 0;i<outputs.size();i++)
+	{
+		std::cerr<<outputs[i]<<std::endl;
+	}
+
+	return BASE::Run(moos_name.c_str(),moos_file.c_str());
+}
+
+
 bool Share::Impl::OnStartUp()
 {
 	base_address_.set_host  (DEFAULT_MULTICAST_GROUP_ADDRESS);
@@ -160,24 +180,19 @@ bool Share::Impl::OnStartUp()
 	try
 	{
 
-		//add default listener
-		if(!AddInputRoute(GetAddressFromChannelAlias(0),true))
-			return false;
-
+		/*
 		AddRoute("X","X",MOOS::IPV4Address("127.0.0.1",9010),false);
 		AddRoute("X","sadfsadf",MOOS::IPV4Address("127.0.0.1",9011),false);
 		AddRoute("X","long_name",MOOS::IPV4Address("localhost",9012),false);
 		AddRoute("X","fly_across",MOOS::IPV4Address("oceanai.mit.edu",9012),false);
 		AddMulticastAliasRoute("X","X",0);
-
 		AddRoute("Square","Triangle",MOOS::IPV4Address("127.0.0.1",9010),false);
 		AddRoute("Square","sadfsadf",MOOS::IPV4Address("161.8.5.1",9011),false);
 		AddMulticastAliasRoute("Horse","Equine",3);
-
 		ProcessIOConfigurationString("src_name = X,dest_name=Z,route=multicast_8",true);
-		ProcessIOConfigurationString("src_name = X,dest_name=Z,route=161.4.5.6:9000 multicast_21 localhost:9832",true);
-
-		ProcessIOConfigurationString("route=multicast_21 localhost:9833 multicast_3",false);
+		ProcessIOConfigurationString("src_name = X,dest_name=Z,route=161.4.5.6:9000&multicast_21&localhost:9832",true);
+		ProcessIOConfigurationString("route=multicast_21&localhost:9833&multicast_3",false);
+		*/
 
 
 		std::vector<std::string> outputs = GetRepeatedConfigurations("Output");
@@ -226,13 +241,14 @@ bool Share::Impl::ProcessIOConfigurationString(const std::string & configuration
 	}
 
 	//we do need a route....
-	MOOSValFromString(routes,configuration_string,"route");
+	if(!MOOSValFromString(routes,configuration_string,"route"))
+		throw std::runtime_error("ProcessIOConfigurationString \"route\" is a required field");
+
 
 	while(!routes.empty())
 	{
 		//look for a space separated list of routes...
-		std::string route = MOOSChomp(routes," ");
-
+		std::string route = MOOSChomp(routes,"&");
 
 		if(route.find("multicast_")==0)
 		{
@@ -262,7 +278,6 @@ bool Share::Impl::ProcessIOConfigurationString(const std::string & configuration
 		{
 			MOOS::IPV4Address route_address(route);
 
-			std::cerr<<"A:++++"<<route_address.to_string()<<std::endl;
 			if(is_output)
 			{
 				if(!AddRoute(src_name,dest_name,route_address,false))
@@ -270,10 +285,8 @@ bool Share::Impl::ProcessIOConfigurationString(const std::string & configuration
 			}
 			else
 			{
-				std::cerr<<"adding AddInputroute\n";
 				if(!AddInputRoute(route_address,false))
 				{
-					std::cerr<<"AddInputroute retuns false\n";
 					return false;
 				}
 			}
@@ -382,11 +395,17 @@ bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 
 	if(MOOSStrCmp("output",cmd))
 	{
-		return ProcessIOConfigurationString(Msg.GetString(),true);
+		if(!ProcessIOConfigurationString(Msg.GetString(),true))
+			return false;
+
+		PrintRoutes();
 	}
 	else if(MOOSStrCmp("input",cmd))
 	{
-		return ProcessIOConfigurationString(Msg.GetString(),false);
+		if(!ProcessIOConfigurationString(Msg.GetString(),false))
+			return false;
+
+		PrintRoutes();
 	}
 	return true;
 }
@@ -404,6 +423,8 @@ bool Share::Impl::PrintSocketMap()
 
 void Share::Impl::PrintRoutes()
 {
+	std::cout<<"-------------------------------------------------------------------------------"<<std::endl;
+
 	RouteMap::iterator q;
 	std::cout<<std::setiosflags(std::ios::left);
 	for(q = routing_table_.begin();q!=routing_table_.end();q++)
@@ -428,8 +449,21 @@ void Share::Impl::PrintRoutes()
 	std::map<MOOS::IPV4Address, Listener*>::iterator t;
 	for(t = listeners_.begin();t!=listeners_.end();t++)
 	{
-		std::cout<<"  "<<t->first.to_string()<<std::endl;
+		std::cout<<"  <-- "<<std::setw(20)<<t->first.to_string();
+		if(t->second->multicast())
+		{
+			unsigned int channel_num = t->second->port()-base_address_.port();
+			std::cout<<"[multicast_"<<channel_num<<"]";
+		}
+		else
+		{
+			std::cout<<"[udp]";
+		}
+
+		std::cout<<std::endl;
 	}
+
+	std::cout<<"-------------------------------------------------------------------------------"<<std::endl;
 
 }
 
@@ -464,6 +498,13 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 
 		//serialise here
 		unsigned int msg_buffer_size = msg.GetSizeInBytesWhenSerialised();
+
+		if(msg_buffer_size>MAX_UDP_SIZE)
+		{
+			std::cerr<<"Message size exceeded payload size of "<<MAX_UDP_SIZE/1024<<" kB - not forwarding\n";
+			return false;
+		}
+
 		std::vector<unsigned char> buffer(msg_buffer_size);
 		if (!msg.Serialize(buffer.data(), msg_buffer_size))
 		{
@@ -560,36 +601,20 @@ int Share::Run(int argc,char * argv[])
 {
 
 	//here we do some command line parsing...
-
-	GetPot cl(argc,argv);
-
-	if(cl.search(2,"--help","-h"))
-		PrintHelpAndExit();
-
-	std::vector<std::string>   nominus_params = cl.nominus_vector();
-	std::cerr<<nominus_params.size()<<std::endl;
-
 	std::string moos_name="pShare";
 	std::string mission_file = "Mission.moos";
 
-	switch(nominus_params.size())
+	switch(argc)
 	{
-	case 1:
-		moos_name = nominus_params[0];
-		break;
+	case 3:
+		moos_name = argv[2];
 	case 2:
-		mission_file = nominus_params[0];
-		moos_name = nominus_params[1];
-		break;
+		mission_file = argv[1];
 	}
-
-	//look for overloads
-	moos_name=  cl.follow(moos_name.c_str(),3,"--name","--alias","-n");
-	mission_file =  cl.follow(mission_file.c_str(),3,"--file","--mission-file","-f");
 
 	try
 	{
-		_Impl->Run(moos_name.c_str(),mission_file.c_str());
+		_Impl->Run(moos_name.c_str(),mission_file.c_str(),argc,argv);
 	}
 	catch(const std::exception & e)
 	{

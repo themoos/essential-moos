@@ -26,6 +26,7 @@ public:
 	bool Run();
 	std::string host(){return address_.host();};
 	unsigned int port(){return address_.port();};
+	bool multicast(){return multicast_;};
 protected:
 	bool ListenLoop();
 	CMOOSThread thread_;
