@@ -14,23 +14,25 @@
 #include "MOOS/libMOOS/Utils/SafeList.h"
 #include "MOOS/libMOOS/Utils/MOOSThread.h"
 #include "MOOS/libMOOS/Comms/MOOSMsg.h"
+#include "MOOS/libMOOS/Utils/IPV4Address.h"
 
 namespace MOOS {
 
 class Listener {
 public:
 
-	Listener(SafeList<CMOOSMsg> & queue, const std::string & address, int port,bool multicast);
+	Listener(SafeList<CMOOSMsg> & queue, const MOOS::IPV4Address & address,bool multicast);
 	virtual ~Listener();
 	bool Run();
-	std::string address(){return address_;};
-	int port(){return port_;};
+	std::string host(){return address_.host();};
+	unsigned int port(){return address_.port();};
 protected:
 	bool ListenLoop();
 	CMOOSThread thread_;
 	SafeList<CMOOSMsg > & queue_;
-	std::string address_;
-	int port_;
+
+	IPV4Address address_;
+
 	bool multicast_;
 
 public:

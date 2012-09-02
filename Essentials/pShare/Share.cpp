@@ -50,19 +50,19 @@ public:
 	bool OnStartUp();
 	bool Iterate();
 	bool OnConnectToServer();
-	bool OnCommandMsg(CMOOSMsg & Msg);
+	bool OnCommandMsg(CMOOSMsg  Msg);
 
 protected:
 
 	bool ApplyRoutes(CMOOSMsg & msg);
 
-	bool AddOutputSocket(MOOS::IPV4Address address, bool multicast = true);
+	bool AddOutputRoute(MOOS::IPV4Address address, bool multicast = true);
 
-	bool AddInputSocket(MOOS::IPV4Address address, bool multicast = true);
+	bool AddInputRoute(MOOS::IPV4Address address, bool multicast = true);
 
 	std::vector<std::string>  GetRepeatedConfigurations(const std::string & token);
 
-	bool ProcessRouteConfigurationString(const std::string & configuration_string );
+	bool ProcessIOConfigurationString(const std::string & configuration_string,bool is_output);
 
 	bool AddRoute(const std::string & src_name,
 				const std::string & dest_name,
@@ -107,7 +107,7 @@ Share::~Share()
 
 
 
-bool Share::Impl::AddInputSocket(MOOS::IPV4Address address , bool multicast)
+bool Share::Impl::AddInputRoute(MOOS::IPV4Address address , bool multicast)
 {
 
 	if(listeners_.find(address)!=listeners_.end())
@@ -121,8 +121,7 @@ bool Share::Impl::AddInputSocket(MOOS::IPV4Address address , bool multicast)
 
 	//OK looking good, make it
 	listeners_[address] = new Listener(incoming_queue_,
-			address.host(),
-			address.port(),
+			address,
 			multicast);
 
 	//run it
@@ -160,11 +159,9 @@ bool Share::Impl::OnStartUp()
 
 	try
 	{
-		//add default outgoing socket
-		MOOS::IPV4Address default_address  = GetAddressFromChannelAlias(0);
 
 		//add default listener
-		if(!AddInputSocket(default_address,true))
+		if(!AddInputRoute(GetAddressFromChannelAlias(0),true))
 			return false;
 
 		AddRoute("X","X",MOOS::IPV4Address("127.0.0.1",9010),false);
@@ -177,17 +174,28 @@ bool Share::Impl::OnStartUp()
 		AddRoute("Square","sadfsadf",MOOS::IPV4Address("161.8.5.1",9011),false);
 		AddMulticastAliasRoute("Horse","Equine",3);
 
-		ProcessRouteConfigurationString("src_name = X,dest_name=Z,route=multicast_8");
-		ProcessRouteConfigurationString("src_name = X,dest_name=Z,route=161.4.5.6:9000 multicast_21 localhost:9832");
+		ProcessIOConfigurationString("src_name = X,dest_name=Z,route=multicast_8",true);
+		ProcessIOConfigurationString("src_name = X,dest_name=Z,route=161.4.5.6:9000 multicast_21 localhost:9832",true);
 
-		std::vector<std::string> shares = GetRepeatedConfigurations("Output");
+		ProcessIOConfigurationString("route=multicast_21 localhost:9833 multicast_3",false);
 
-		for(std::vector<std::string>::iterator q=shares.begin();
-				q!=shares.end();
+
+		std::vector<std::string> outputs = GetRepeatedConfigurations("Output");
+		for(std::vector<std::string>::iterator q=outputs.begin();
+				q!=outputs.end();
 				q++)
 		{
-			ProcessRouteConfigurationString(*q);
+			ProcessIOConfigurationString(*q,true);
 		}
+
+		std::vector<std::string> inputs = GetRepeatedConfigurations("Input");
+		for(std::vector<std::string>::iterator q=inputs.begin();
+				q!=inputs.end();
+				q++)
+		{
+			ProcessIOConfigurationString(*q,false);
+		}
+
 
 		PrintRoutes();
 	}
@@ -199,14 +207,23 @@ bool Share::Impl::OnStartUp()
 	return true;
 }
 
-bool Share::Impl::ProcessRouteConfigurationString(const std::string & configuration_string )
+
+
+
+bool Share::Impl::ProcessIOConfigurationString(const std::string & configuration_string, bool is_output )
 {
 	std::string src_name, dest_name, routes;
-	MOOSValFromString(src_name,configuration_string,"src_name");
 
-	//default no change in name
-	dest_name = src_name;
-	MOOSValFromString(dest_name,configuration_string,"dest_name");
+
+	if(is_output)
+	{
+		if(!MOOSValFromString(src_name,configuration_string,"src_name"))
+			throw std::runtime_error("ProcessIOConfigurationString \"src_name\" is a required field");
+
+		//default no change in name
+		dest_name = src_name;
+		MOOSValFromString(dest_name,configuration_string,"dest_name");
+	}
 
 	//we do need a route....
 	MOOSValFromString(routes,configuration_string,"route");
@@ -215,6 +232,7 @@ bool Share::Impl::ProcessRouteConfigurationString(const std::string & configurat
 	{
 		//look for a space separated list of routes...
 		std::string route = MOOSChomp(routes," ");
+
 
 		if(route.find("multicast_")==0)
 		{
@@ -228,11 +246,37 @@ bool Share::Impl::ProcessRouteConfigurationString(const std::string & configurat
 				continue;
 			}
 
-			AddMulticastAliasRoute(src_name,dest_name,channel_num);
+			if(is_output)
+			{
+				if(!AddMulticastAliasRoute(src_name,dest_name,channel_num))
+					return false;
+			}
+			else
+			{
+				if(!AddInputRoute(GetAddressFromChannelAlias(channel_num),true))
+					return false;
+			}
+
 		}
 		else
 		{
-			AddRoute(src_name,dest_name,route,false);
+			MOOS::IPV4Address route_address(route);
+
+			std::cerr<<"A:++++"<<route_address.to_string()<<std::endl;
+			if(is_output)
+			{
+				if(!AddRoute(src_name,dest_name,route_address,false))
+					return false;
+			}
+			else
+			{
+				std::cerr<<"adding AddInputroute\n";
+				if(!AddInputRoute(route_address,false))
+				{
+					std::cerr<<"AddInputroute retuns false\n";
+					return false;
+				}
+			}
 		}
 
 	}
@@ -302,7 +346,7 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 	SocketMap::iterator mcg = socket_map_.find(address);
 	if (mcg == socket_map_.end())
 	{
-		if(!AddOutputSocket(address,multicast))
+		if(!AddOutputRoute(address,multicast))
 			return false;
 	}
 
@@ -331,18 +375,18 @@ bool Share::Impl::OnConnectToServer()
 	return true;
 }
 
-bool Share::Impl::OnCommandMsg(CMOOSMsg & Msg)
+bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 {
 	std::string cmd;
 	MOOSValFromString(cmd,Msg.GetString(),"cmd");
 
 	if(MOOSStrCmp("output",cmd))
 	{
-		return ProcessRouteConfigurationString(Msg.GetString());
+		return ProcessIOConfigurationString(Msg.GetString(),true);
 	}
 	else if(MOOSStrCmp("input",cmd))
 	{
-
+		return ProcessIOConfigurationString(Msg.GetString(),false);
 	}
 	return true;
 }
@@ -379,6 +423,14 @@ void Share::Impl::PrintRoutes()
 		}
 
 	}
+
+	std::cout<<"Listening on:\n";
+	std::map<MOOS::IPV4Address, Listener*>::iterator t;
+	for(t = listeners_.begin();t!=listeners_.end();t++)
+	{
+		std::cout<<"  "<<t->first.to_string()<<std::endl;
+	}
+
 }
 
 bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
@@ -439,7 +491,7 @@ MOOS::IPV4Address Share::Impl::GetAddressFromChannelAlias(unsigned int channel_n
 }
 
 
-bool Share::Impl::AddOutputSocket(MOOS::IPV4Address address, bool multicast)
+bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 {
 
 	Socket new_socket;
