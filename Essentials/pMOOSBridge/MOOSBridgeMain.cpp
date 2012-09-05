@@ -32,9 +32,6 @@
 #include "MOOSBridge.h"
 
 
-
-
-
 int main(int argc,char* argv[])
 {
     //Test();
@@ -51,10 +48,11 @@ int main(int argc,char* argv[])
     }
 
     //sMissionFile = "/Users/pnewman/links/MOOS/Essentials/pMOOSBridge/Examples/V1.moos";
+    //sMissionFile = "/Users/pnewman/code/CompactMOOSProjects/EMB/bin/bravo.moos";
 
     MOOS::Bridge TheBridge;
 
-    TheBridge.Run(sMissionFile,sMOOSName);
+    TheBridge.Run(sMOOSName,sMissionFile);
 
     return 0;
 }

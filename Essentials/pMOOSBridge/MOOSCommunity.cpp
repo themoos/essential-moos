@@ -77,12 +77,18 @@ bool CMOOSCommunity::AddSource(const string &sStr)
     //add it to permanent list (will be registered on call back)
     m_Sources.insert(sStr);
 
+    std::cout<<GetCommunityName()<<" adds source : "<<sStr<<std::endl;
 
     //and also subscribe now
     if(m_CommClient.IsConnected())
     {
         double dfPeriod = m_nSharedFreq==0?0.0:1.0/m_nSharedFreq;
         return m_CommClient.Register(sStr,dfPeriod);
+    }
+    else
+    {
+        std::cout<<" !registration pending \n";
+
     }
 
     return true;
@@ -207,9 +213,13 @@ bool CMOOSCommunity::DoRegistration()
 {
     std::set<std::string>::iterator q;
 
+    std::cout<<"starting source registration \n";
+
     for(q=m_Sources.begin();q!=m_Sources.end();q++)
     {
         double dfPeriod = m_nSharedFreq==0?0.0:1.0/m_nSharedFreq;
+
+        std::cout<<"registering for source "<<*q<<std::endl;
 
         if(!m_CommClient.Register(*q,dfPeriod))
             return false;
