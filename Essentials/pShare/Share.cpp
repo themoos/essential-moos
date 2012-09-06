@@ -373,7 +373,7 @@ bool Share::Impl::PublishSharingStatus()
 	for(t = listeners_.begin();t!=listeners_.end();t++)
 	{
 		if(t!=listeners_.begin())
-			ssi<<" & ";
+			ssi<<",";
 		ssi<<t->first.to_string();
 		if(t->second->multicast())
 		{
