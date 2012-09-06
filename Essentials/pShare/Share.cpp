@@ -62,9 +62,11 @@ protected:
 
 	bool AddInputRoute(MOOS::IPV4Address address, bool multicast = true);
 
+	bool PublishSharingStatus();
+
 	std::vector<std::string>  GetRepeatedConfigurations(const std::string & token);
 
-	bool ProcessIOConfigurationString(const std::string & configuration_string,bool is_output);
+	bool ProcessIOConfigurationString(std::string  configuration_string,bool is_output);
 
 	bool AddRoute(const std::string & src_name,
 				const std::string & dest_name,
@@ -100,6 +102,22 @@ private:
 	MOOS::IPV4Address base_address_;
 
 };
+
+const std::string trim(const std::string& pString,
+                       const std::string& pWhitespace = " \t")
+{
+    const size_t beginStr = pString.find_first_not_of(pWhitespace);
+    if (beginStr == std::string::npos)
+    {
+        // no content
+        return "";
+    }
+
+    const size_t endStr = pString.find_last_not_of(pWhitespace);
+    const size_t range = endStr - beginStr + 1;
+
+    return pString.substr(beginStr, range);
+}
 
 Share::Share() :_Impl(new Impl)
 {
@@ -180,8 +198,8 @@ bool Share::Impl::OnStartUp()
 	try
 	{
 
-		/*
-		AddRoute("X","X",MOOS::IPV4Address("127.0.0.1",9010),false);
+/*
+		AddRoute("  X   ","X",MOOS::IPV4Address("127.0.0.1",9010),false);
 		AddRoute("X","sadfsadf",MOOS::IPV4Address("127.0.0.1",9011),false);
 		AddRoute("X","long_name",MOOS::IPV4Address("localhost",9012),false);
 		AddRoute("X","fly_across",MOOS::IPV4Address("oceanai.mit.edu",9012),false);
@@ -189,11 +207,10 @@ bool Share::Impl::OnStartUp()
 		AddRoute("Square","Triangle",MOOS::IPV4Address("127.0.0.1",9010),false);
 		AddRoute("Square","sadfsadf",MOOS::IPV4Address("161.8.5.1",9011),false);
 		AddMulticastAliasRoute("Horse","Equine",3);
-		ProcessIOConfigurationString("src_name = X,dest_name=Z,route=multicast_8",true);
-		ProcessIOConfigurationString("src_name = X,dest_name=Z,route=161.4.5.6:9000&multicast_21&localhost:9832",true);
+		ProcessIOConfigurationString("src_name =X,dest_name=Z,route=multicast_8",true);
+		ProcessIOConfigurationString("src_name =X,dest_name=Z,route=161.4.5.6:9000&multicast_21&localhost:9832",true);
 		ProcessIOConfigurationString("route=multicast_21&localhost:9833&multicast_3",false);
 		*/
-
 
 		std::vector<std::string> outputs = GetRepeatedConfigurations("Output");
 		for(std::vector<std::string>::iterator q=outputs.begin();
@@ -225,10 +242,11 @@ bool Share::Impl::OnStartUp()
 
 
 
-bool Share::Impl::ProcessIOConfigurationString(const std::string & configuration_string, bool is_output )
+bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string, bool is_output )
 {
 	std::string src_name, dest_name, routes;
 
+	MOOSRemoveChars(configuration_string, " ");
 
 	if(is_output)
 	{
@@ -311,6 +329,71 @@ bool Share::Impl::Iterate()
 			}
 		}
 	}
+	PublishSharingStatus();
+	return true;
+}
+
+bool Share::Impl::PublishSharingStatus()
+{
+	static double last_time = MOOS::Time();
+	if(MOOS::Time()-last_time<1.0)
+		return true;
+
+	std::stringstream sso;
+
+	//Output = X->Y@165.45.3.61:9000-[udp] & Z@165.45.3.61.2
+	RouteMap::iterator q;
+	for(q = routing_table_.begin();q!=routing_table_.end();q++)
+	{
+		if(q!=routing_table_.begin())
+			sso<<", ";
+		std::list<Route> & routes = q->second;
+		sso<<q->first<<"->";
+		std::list<Route>::iterator p;
+		for(p = routes.begin();p!=routes.end();p++)
+		{
+			if(p!=routes.begin())
+				sso<<" & ";
+			Route & route = *p;
+			sso<<route.dest_name<<":"<<route.dest_address.to_string();
+			if(route.multicast)
+			{
+				sso<<":multicast_"<<route.dest_address.port()-base_address_.port();
+			}
+			else
+			{
+				sso<<":udp";
+			}
+		}
+	}
+
+	std::stringstream ssi;
+
+	std::map<MOOS::IPV4Address, Listener*>::iterator t;
+	for(t = listeners_.begin();t!=listeners_.end();t++)
+	{
+		if(t!=listeners_.begin())
+			ssi<<" & ";
+		ssi<<t->first.to_string();
+		if(t->second->multicast())
+		{
+			ssi<<":multicast_"<<t->second->port()-base_address_.port();
+		}
+		else
+		{
+			ssi<<":udp";
+		}
+	}
+
+
+	last_time = MOOS::Time();
+
+	Notify(GetAppName()+"_OUTPUT_SUMMARY",sso.str());
+	Notify(GetAppName()+"_INPUT_SUMMARY",ssi.str());
+
+	//std::cerr<<sso.str()<<std::endl;
+	//std::cerr<<ssi.str()<<std::endl;
+
 	return true;
 }
 
@@ -363,15 +446,18 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 			return false;
 	}
 
-	Register(src_name, 0.0);
+	std::string trimed_src_name = trim(src_name);
+	std::string trimed_dest_name = trim(dest_name);
+
+	Register(trimed_src_name, 0.0);
 
 	//finally add this to our routing table
 	Route route;
-	route.dest_name = dest_name;
-	route.src_name = src_name;
+	route.dest_name = trimed_dest_name;
+	route.src_name = trimed_src_name;
 	route.dest_address = address;
 	route.multicast = multicast;
-	routing_table_[src_name].push_back(route);
+	routing_table_[trimed_src_name].push_back(route);
 
 	return true;
 }
