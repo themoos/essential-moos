@@ -67,6 +67,7 @@ void ShareHelp::PrintHelpAndExit()
 			"  --config MissionFile  : specify configuration file\n"
 			"  --alias MOOSName      : specify MOOS name\n"
 			"  -i                    : display interface help\n"
+			"  -e                    : display configuration help\n"
 			"  -h, --help            : display this help\n";
 
 	std::cerr<<YELLOW<<"\nExamples:\n\n"<<NORMAL;
