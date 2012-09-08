@@ -33,7 +33,9 @@
 
 #define RED MOOS::ConsoleColours::Red()
 #define GREEN MOOS::ConsoleColours::Green()
+#define YELLOW MOOS::ConsoleColours::Yellow()
 #define NORMAL MOOS::ConsoleColours::reset()
+
 
 namespace MOOS {
 
@@ -683,20 +685,56 @@ void PrintHelpAndExit()
 
 }
 
+void PrintInterfaceAndExit()
+{
+	std::cerr<<RED<<"\n--------------------------------------------\n";
+	std::cerr<<RED<<"      \"pShare\" Interface Description    \n";
+	std::cerr<<RED<<"--------------------------------------------\n";
+	std::cerr<<GREEN<<"Publishes:\n\n"<<NORMAL;
+	std::cerr<<"   <AppName>_INPUT_SUMMARY\n";
+	std::cerr<<"   <AppName>_OUTPUT_SUMMARY\n\n";
+
+
+	std::cerr<<YELLOW<<"PSHARE_OUTPUT_SUMMARY\n"<<NORMAL;
+	std::cerr<<"This variable describes the forwarding or sharing currently being undertaken by pShare.\n";
+	std::cerr<<"\nIt has the following format:\n ";
+	std::cerr<<"  Output = src_name->route1 & route 2, src_name->route1 & route 2....\n";
+	std::cerr<<"where a route is a colon delimited tuple\n ";
+	std::cerr<<"  dest_name:host_name:port:protocol \n";
+	std::cerr<<"example:\n";
+	std::cerr<<"  \"Output = X->Y:165.45.3.61:9000:udp & Z:165.45.3.61.2000:multicast_8,K->K:192.168.66.12:3000:udp\"\n";
+	std::cerr<<"\n\n";
+	std::cerr<<YELLOW<<"PSHARE_INPUT_SUMMARY\n"<<NORMAL;
+	std::cerr<<"This variable describes channels and ports on which pShare receives data.\n";
+	std::cerr<<"\nIt has the following format:\n ";
+	std::cerr<<"  Input = hostname:port:protocol,hostname:port:protocol...\n";
+	std::cerr<<"example:\n";
+	std::cerr<<"  \"input = localhost:9001:udp , 221.1.1.18:multicast_18\"\n";
+	std::cerr<<"\n\n";
+
+
+	exit(0);
+}
+
+
 int Share::Run(int argc,char * argv[])
 {
 
 	//here we do some command line parsing...
-	std::string moos_name="pShare";
-	std::string mission_file = "Mission.moos";
 
-	switch(argc)
-	{
-	case 3:
-		moos_name = argv[2];
-	case 2:
-		mission_file = argv[1];
-	}
+	GetPot cl(argc,argv);
+
+	//mission file could be first parameter or after --config
+	std::string mission_file = cl.get(1,"Mission.moos");
+	mission_file = cl("--config", mission_file.c_str());
+
+	//alias could be second parameter or after --alias or after --moos_name
+	std::string moos_name = cl.get(2,"pShare");
+	moos_name = cl("--alias", moos_name.c_str());
+	moos_name = cl("--moos_name", moos_name.c_str());
+
+	if(cl.search("-i"))
+		PrintInterfaceAndExit();
 
 	try
 	{
