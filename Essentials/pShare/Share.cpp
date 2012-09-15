@@ -13,6 +13,7 @@
 #include <stdexcept>
 #include <string>
 #include <iomanip>
+#include <vector>
 
 #include "MOOS/libMOOS/Utils/MOOSUtilityFunctions.h"
 #include "MOOS/libMOOS/Utils/IPV4Address.h"
@@ -61,6 +62,8 @@ protected:
 
 	bool ApplyRoutes(CMOOSMsg & msg);
 
+	bool ApplyWildcardRoutes( CMOOSMsg& msg);
+
 	bool AddOutputRoute(MOOS::IPV4Address address, bool multicast = true);
 
 	bool AddInputRoute(MOOS::IPV4Address address, bool multicast = true);
@@ -70,6 +73,8 @@ protected:
 	std::vector<std::string>  GetRepeatedConfigurations(const std::string & token);
 
 	bool ProcessIOConfigurationString(std::string  configuration_string,bool is_output);
+
+	bool ProcessShortHandIOConfigurationString(std::string configuration_string, bool is_output);
 
 	bool AddRoute(const std::string & src_name,
 				const std::string & dest_name,
@@ -96,6 +101,9 @@ private:
 	//this maps variable name to route
 	typedef std::map<std::string, std::list<Route> > RouteMap;
 	RouteMap routing_table_;
+
+	typedef std::map<std::pair< std::string,std::string>, std::list<Route> > WildcardRouteMap;
+	WildcardRouteMap wildcard_routing_table_;
 
 	//this maps channel number to a listener (with its own thread)
 	SafeList<CMOOSMsg > incoming_queue_;
@@ -124,6 +132,7 @@ const std::string trim(const std::string& pString,
 
 Share::Share() :_Impl(new Impl)
 {
+
 }
 
 Share::~Share()
@@ -176,6 +185,10 @@ std::vector<std::string>  Share::Impl::GetRepeatedConfigurations(const std::stri
 
 bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_file, int argc, char * argv[])
 {
+
+	base_address_.set_host  (DEFAULT_MULTICAST_GROUP_ADDRESS);
+	base_address_.set_port (DEFAULT_MULTICAST_GROUP_PORT);
+
 	//here we can add some routes specified on command line...
 	//  "./pShare --output 'X->Y multicast_8 multicast_7' 'Z->Q localhost:9000'"
 	GetPot cl(argc,argv);
@@ -184,6 +197,7 @@ bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_f
 	for(unsigned int i = 0;i<outputs.size();i++)
 	{
 		std::cerr<<outputs[i]<<std::endl;
+		ProcessShortHandIOConfigurationString(outputs[i],true);
 	}
 
 	return BASE::Run(moos_name.c_str(),moos_file.c_str());
@@ -192,8 +206,6 @@ bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_f
 
 bool Share::Impl::OnStartUp()
 {
-	base_address_.set_host  (DEFAULT_MULTICAST_GROUP_ADDRESS);
-	base_address_.set_port (DEFAULT_MULTICAST_GROUP_PORT);
 
 	EnableCommandMessageFiltering(true);
 
@@ -242,7 +254,100 @@ bool Share::Impl::OnStartUp()
 	return true;
 }
 
+bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuration_string, bool is_output)
+{
+	std::string copy_config = configuration_string;
+	//X->Y:165.45.3.61:9000:udp & Z:multicast_8
+	std::string src_name = MOOS::Chomp(configuration_string,"->");
+	while(!configuration_string.empty())
+	{
+		std::string route_description = MOOS::Chomp(configuration_string,"&");
+		std::list<std::string> parts;
 
+		while(!route_description.empty())
+		{
+			parts.push_back(MOOS::Chomp(route_description,":"));
+		}
+
+		std::string dest_name = src_name;
+
+		if(parts.back().find("udp")==0)
+		{
+			if(parts.size()==4)
+			{
+				dest_name = parts.front();parts.pop_front();
+			}
+			std::string host_name = parts.front();parts.pop_front();
+			std::string host_port = parts.front();parts.pop_front();
+			std::string destination = host_name+":"+host_port;
+
+			std::string io;
+			MOOSAddValToString(io,"src_name",src_name);
+			MOOSAddValToString(io,"dest_name",dest_name);
+			MOOSAddValToString(io,"route",destination);
+			try
+			{
+				ProcessIOConfigurationString(io,true);
+			}
+			catch(const std::exception & e)
+			{
+				std::cerr<<RED<<"short hand failed to parse "<<copy_config
+						<<" "<<e.what()<<std::endl<<NORMAL;
+			}
+
+
+		}
+		else if(parts.back().find("multicast")==0)
+		{
+			std::string host_name;
+			std::string host_port;
+			std::string multicast_channel;
+			switch(parts.size())
+			{
+			case 4:
+				//X:212.1.1.3:80453:multicast
+				dest_name = parts.front();parts.pop_front();
+			case 3:
+				//212.1.1.3:80453:multicast
+				host_name = parts.front();parts.pop_front();
+				host_port = parts.front();parts.pop_front();
+				multicast_channel = host_name+":"+host_port;
+				break;
+			case 2:
+				//X:multicast_8
+				dest_name = parts.front();parts.pop_front();
+			case 1:
+				//multicast_8
+				multicast_channel = parts.front();parts.pop_front();
+				break;
+			}
+
+			std::string io;
+			MOOSAddValToString(io,"src_name",src_name);
+			MOOSAddValToString(io,"dest_name",dest_name);
+			MOOSAddValToString(io,"route",multicast_channel);
+
+			try
+			{
+				ProcessIOConfigurationString(io,true);
+			}
+			catch(const std::exception & e)
+			{
+				std::cerr<<RED<<"shorthand failed to parse:\n   "
+						<<copy_config<<" \n"
+						<<io<<" \n"<<e.what()<<std::endl<<NORMAL;
+			}
+
+
+
+		}
+
+
+	}
+
+	return true;
+
+}
 
 
 bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string, bool is_output )
@@ -344,7 +449,7 @@ bool Share::Impl::PublishSharingStatus()
 
 	std::stringstream sso;
 
-	//Output = X->Y@165.45.3.61:9000-[udp] & Z@165.45.3.61.2
+	//Output = X->Y:165.45.3.61:9000:udp & Z@165.45.3.61.2
 	RouteMap::iterator q;
 	for(q = routing_table_.begin();q!=routing_table_.end();q++)
 	{
@@ -409,19 +514,23 @@ bool Share::Impl::OnNewMail(MOOSMSG_LIST & new_mail)
 	{
 		//do we need to forward it
 		RouteMap::iterator g = routing_table_.find(q->GetKey());
-		if(g != routing_table_.end())
+		try
 		{
-			try
+			if(g != routing_table_.end())
 			{
 				//yes OK - try to do so
 				ApplyRoutes(*q);
 			}
-			catch(const std::exception & e)
+			else
 			{
-				std::cerr <<RED<< "Exception thrown: " << e.what() <<NORMAL<< std::endl;
+				//maybe its a wildcard...
+				ApplyWildcardRoutes(*q);
 			}
 		}
-
+		catch(const std::exception & e)
+		{
+			std::cerr <<RED<< "Exception thrown: " << e.what() <<NORMAL<< std::endl;
+		}
 	}
 
 	return true;
@@ -452,15 +561,44 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 	std::string trimed_src_name = trim(src_name);
 	std::string trimed_dest_name = trim(dest_name);
 
-	Register(trimed_src_name, 0.0);
 
-	//finally add this to our routing table
-	Route route;
-	route.dest_name = trimed_dest_name;
-	route.src_name = trimed_src_name;
-	route.dest_address = address;
-	route.multicast = multicast;
-	routing_table_[trimed_src_name].push_back(route);
+
+
+
+	if(trimed_src_name.find_last_of("*?:")==std::string::npos)
+	{
+		Route route;
+		route.dest_name = trimed_dest_name;
+		route.src_name = trimed_src_name;
+		route.dest_address = address;
+		route.multicast = multicast;
+
+		//this is a regular share....
+		Register(trimed_src_name, 0.0);
+
+		//add this to our routing table
+		routing_table_[trimed_src_name].push_back(route);
+	}
+	else
+	{
+
+		Route route;
+		route.dest_name = trimed_dest_name;
+		route.dest_address = address;
+		route.multicast = multicast;
+
+		//this looks like a wildcard share
+		std::string var_pattern = MOOS::Chomp(trimed_src_name,":");
+		std::string app_pattern = "*";
+		if(!trimed_src_name.empty())
+			app_pattern = trimed_src_name;
+
+		//do a wildcard registration
+		Register(var_pattern,app_pattern,0.0);
+
+		//add this to wildcard routing table
+		wildcard_routing_table_[std::make_pair(var_pattern,app_pattern)].push_back(route);
+	}
 
 	return true;
 }
@@ -474,6 +612,14 @@ bool Share::Impl::OnConnectToServer()
 	{
 		Register(q->first, 0.0);
 	}
+
+
+	WildcardRouteMap::iterator g;
+	for(g=wildcard_routing_table_.begin();g!=wildcard_routing_table_.end();g++)
+	{
+		Register(g->first.first,g->first.second, 0.0);
+	}
+
 	return true;
 }
 
@@ -555,6 +701,47 @@ void Share::Impl::PrintRoutes()
 	std::cout<<"-------------------------------------------------------------------------------"<<std::endl;
 
 }
+
+bool WildcardMatch(const std::string & var_pattern,
+		const std::string & src_app_pattern,
+		const std::string & var,
+		const std::string & src_app)
+{
+	return MOOSWildCmp(src_app_pattern,src_app) && MOOSWildCmp(var_pattern,var);
+}
+
+bool Share::Impl::ApplyWildcardRoutes( CMOOSMsg& msg)
+{
+	//maybe it is in our wildcard routing?
+
+	WildcardRouteMap::iterator g;
+	for(g=wildcard_routing_table_.begin();g!=wildcard_routing_table_.end();g++)
+	{
+		std::string var_pattern = g->first.first;
+		std::string app_pattern = g->first.second;
+		std::list<MOOS::Route> & routes = g->second;
+
+		std::list<MOOS::Route>::iterator h;
+		for(h = routes.begin();h!=routes.end();h++)
+		{
+			Route & route = *h;
+			if(WildcardMatch(var_pattern,
+					app_pattern,
+					msg.GetKey(),
+					msg.GetSource()))
+			{
+				Route new_route = route;
+				new_route.dest_name+=msg.GetKey();
+				new_route.src_name = msg.GetKey();
+				std::cerr<<"dynamically creating route for "<<msg.GetKey()<<std::endl;
+				routing_table_[msg.GetKey()].push_back(new_route);
+				ApplyRoutes(msg);
+			}
+		}
+	}
+	return true;
+}
+
 
 bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 {
@@ -691,13 +878,20 @@ int Share::Run(int argc,char * argv[])
 	GetPot cl(argc,argv);
 
 	//mission file could be first parameter or after --config
-	std::string mission_file = cl.get(1,"Mission.moos");
-	mission_file = cl("--config", mission_file.c_str());
 
-	//alias could be second parameter or after --alias or after --moos_name
+	std::string mission_file = cl.get(1,"Mission.moos");
 	std::string moos_name = cl.get(2,"pShare");
-	moos_name = cl("--alias", moos_name.c_str());
-	moos_name = cl("--moos_name", moos_name.c_str());
+	if(mission_file.find("-")==0)
+	{
+		//looks like an option...
+		mission_file = cl("--config", "Mission.moos");
+
+		//alias could be second parameter or after --alias or after --moos_name
+		moos_name = "pShare";
+		moos_name = cl("--alias", moos_name.c_str());
+		moos_name = cl("--moos_name", moos_name.c_str());
+	}
+
 
 	if(cl.search("-i"))
 		ShareHelp::PrintInterfaceAndExit();

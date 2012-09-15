@@ -11,7 +11,6 @@ namespace MOOS {
 
 Route::Route() {
 	// TODO Auto-generated constructor stub
-
 }
 
 Route::~Route() {
