@@ -48,6 +48,42 @@ struct Socket {
 	struct sockaddr_in sock_addr;
 };
 
+class KeyboardCapture
+{
+public:
+	static bool dispatch(void * param)
+	{
+		KeyboardCapture* pMe = (KeyboardCapture*)param;
+		return pMe->Capture();
+	}
+	bool Capture()
+	{
+		while(!worker_.IsQuitRequested())
+		{
+			char c = MOOSGetch();
+			queue_.Push(c);
+		}
+		return true;
+	}
+	bool Start()
+	{
+		worker_.Initialise(dispatch,this);
+		return worker_.Start();
+	}
+
+	bool GetKeyboardInput(char & input)
+	{
+		if(queue_.Size()==0)
+			return false;
+
+		return queue_.Pull(input);
+	}
+private:
+	CMOOSThread worker_;
+	MOOS::SafeList<char> queue_;
+
+
+};
 
 class Share::Impl: public CMOOSApp {
 public:
@@ -89,6 +125,8 @@ protected:
 
 	void PrintRoutes();
 
+	void LookForAndHandleUserInput();
+
 	bool PrintSocketMap();
 
 private:
@@ -111,6 +149,9 @@ private:
 
 	//teh address form which we count
 	MOOS::IPV4Address base_address_;
+
+	//something to let us spot user interaction
+	KeyboardCapture keyboard_capture_;
 
 };
 
@@ -208,6 +249,8 @@ bool Share::Impl::OnStartUp()
 {
 
 	EnableCommandMessageFiltering(true);
+
+	keyboard_capture_.Start();
 
 
 	try
@@ -437,8 +480,33 @@ bool Share::Impl::Iterate()
 			}
 		}
 	}
+
+	LookForAndHandleUserInput();
+
+
 	PublishSharingStatus();
 	return true;
+}
+
+void Share::Impl::LookForAndHandleUserInput()
+{
+	char user_input;
+	if(keyboard_capture_.GetKeyboardInput(user_input))
+	{
+		switch(user_input)
+		{
+		case 'p':
+			PrintRoutes();
+			break;
+		case 'q':
+		case 3: //control-C
+			exit(0);
+		default:
+			std::cout<<RED<<"Unknown user command \""<<user_input<<"\"\n";
+			break;
+		}
+	}
+
 }
 
 bool Share::Impl::PublishSharingStatus()
@@ -658,14 +726,18 @@ bool Share::Impl::PrintSocketMap()
 
 void Share::Impl::PrintRoutes()
 {
-	std::cout<<"-------------------------------------------------------------------------------"<<std::endl;
+	std::cout<<"---------------------- ROUTING INFORMATION ------------------------------------"<<std::endl;
+
+	std::cout<<GREEN<<"Standard Routes:\n"<<NORMAL;
+	if(routing_table_.empty())
+		std::cout<<"   none\n";
 
 	RouteMap::iterator q;
 	std::cout<<std::setiosflags(std::ios::left);
 	for(q = routing_table_.begin();q!=routing_table_.end();q++)
 	{
 		std::list<Route> & routes = q->second;
-		std::cout<<"routing for \""<< q->first<<"\""<<std::endl;
+		std::cout<<"  routing for \""<< q->first<<"\""<<std::endl;
 		std::list<Route>::iterator p;
 		for(p = routes.begin();p!=routes.end();p++)
 		{
@@ -680,7 +752,40 @@ void Share::Impl::PrintRoutes()
 
 	}
 
-	std::cout<<"Listening on:\n";
+	std::cout<<GREEN<<"Wildcard Routes:\n"<<NORMAL;
+	if(wildcard_routing_table_.empty())
+		std::cout<<"   none\n";
+
+	WildcardRouteMap::iterator w;
+	for(w = wildcard_routing_table_.begin();w!=wildcard_routing_table_.end();w++)
+	{
+		std::list<Route> & routes = w->second;
+		std::string var_pattern = w->first.first;
+		std::string app_pattern = w->first.second;
+
+		std::cout<<"  routing for variables matching \""<<
+				var_pattern <<"\" from sources matching \""<<
+				app_pattern<<"\": "<<std::endl;
+
+		std::list<Route>::iterator p;
+		for(p = routes.begin();p!=routes.end();p++)
+		{
+			Route & route = *p;
+			std::cout<<"  --> "<<std::setw(20)<<route.dest_address.to_string()
+					<<" as "<<std::setw(10)<<route.dest_name+"*";
+			if(route.multicast)
+				std::cout<<" [multicast]";
+			else
+				std::cout<<" [udp]";
+			std::cout<<std::endl;
+		}
+	}
+
+
+	std::cout<<GREEN<<"Listening on:\n"<<NORMAL;
+	if(listeners_.empty())
+		std::cout<<"   none\n";
+
 	std::map<MOOS::IPV4Address, Listener*>::iterator t;
 	for(t = listeners_.begin();t!=listeners_.end();t++)
 	{
@@ -880,18 +985,15 @@ int Share::Run(int argc,char * argv[])
 	//mission file could be first parameter or after --config
 
 	std::string mission_file = cl.get(1,"Mission.moos");
-	std::string moos_name = cl.get(2,"pShare");
 	if(mission_file.find("-")==0)
 	{
 		//looks like an option...
 		mission_file = cl("--config", "Mission.moos");
 
-		//alias could be second parameter or after --alias or after --moos_name
-		moos_name = "pShare";
-		moos_name = cl("--alias", moos_name.c_str());
-		moos_name = cl("--moos_name", moos_name.c_str());
 	}
 
+	//alias could be  parameter or after --alias or after --moos_name
+	std::string moos_name = cl.follow("pShare",2,"--alias","--moos_name","-a");
 
 	if(cl.search("-i"))
 		ShareHelp::PrintInterfaceAndExit();
