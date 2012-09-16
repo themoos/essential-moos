@@ -304,7 +304,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 	std::string src_name = MOOS::Chomp(configuration_string,"->");
 	while(!configuration_string.empty())
 	{
-		std::string route_description = MOOS::Chomp(configuration_string,"&");
+		std::string route_description = trim(MOOS::Chomp(configuration_string,"&"));
 		std::list<std::string> parts;
 
 		while(!route_description.empty())
