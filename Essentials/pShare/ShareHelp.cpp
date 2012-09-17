@@ -26,11 +26,11 @@ ShareHelp::~ShareHelp() {
 }
 void ShareHelp::PrintConfigurationExampleAndExit()
 {
-	std::cerr<<RED<<"\n--------------------------------------------\n";
-	std::cerr<<RED<<"      \"pShare\" Example Configuration      \n";
-	std::cerr<<RED<<"--------------------------------------------\n\n"<<NORMAL;
+	std::cout<<RED<<"\n--------------------------------------------\n";
+	std::cout<<RED<<"      \"pShare\" Example Configuration      \n";
+	std::cout<<RED<<"--------------------------------------------\n\n"<<NORMAL;
 
-	std::cerr<<"ProcessConfig =pShare\n"
+	std::cout<<"ProcessConfig =pShare\n"
 			"{\n"
 			<<YELLOW<<"  //simple forward of X to A on channel 8\n"<<NORMAL<<
 			"  output = src_name = X,dest_name=A,route=multicast_8\n\n"
@@ -57,39 +57,86 @@ void ShareHelp::PrintConfigurationExampleAndExit()
 
 void ShareHelp::PrintHelpAndExit()
 {
-	std::cerr<<RED<<"\n--------------------------------------------\n";
-	std::cerr<<RED<<"      \"pShare\" Help                       \n";
-	std::cerr<<RED<<"--------------------------------------------\n";
+	std::cout<<RED<<"\n--------------------------------------------\n";
+	std::cout<<RED<<"      \"pShare\" Help                       \n";
+	std::cout<<RED<<"--------------------------------------------\n";
 
-	std::cerr<<YELLOW<<"\nGeneral Usage\n\n"<<NORMAL;
-	std::cerr<<"pShare MissionFile MOOSName\n"
+	std::cout<<YELLOW<<"\nGeneral Usage\n\n"<<NORMAL;
+	std::cout<<"pShare MissionFile [switches] \n\n"
 			"switches:\n"
 			"  --config MissionFile  : specify configuration file\n"
 			"  --alias MOOSName      : specify MOOS name\n"
 			"  -i                    : display interface help\n"
 			"  -e                    : display configuration help\n"
-			"  -h, --help            : display this help\n";
+			"  -h, --help            : display this help\n"
+			"  -o, (--output) outputs: specify outputs from command line\n"
+			"  -in, (--input) inputs : specify inputs from command line\n";
 
-	std::cerr<<YELLOW<<"\nExamples:\n\n"<<NORMAL;
 
-	std::cerr<<"a)   \"./pShare\"  (register under default name of pShare, no "
+	std::cout<<YELLOW<<"\nExamples:\n\n"<<NORMAL;
+
+	std::cout<<"a)   \"./pShare\"  (register under default name of pShare, no "
 			"configuration all sharing configured online)\n";
-	std::cerr<<"b)   \"./pShare special.moos\" (register under default name of pShare)\n";
-	std::cerr<<"c)   \"./pShare special.moos\" (register under default name of pShare)\n";
-	std::cerr<<"d)   \"./pShare special.moos pShare2\" (register under MOOSName of pShare2)\n";
-	std::cerr<<"e)   \"./pShare special.moos --alias pShare2\" (register under MOOSName of pShare2)\n";
+	std::cout<<"b)   \"./pShare special.moos\" (register under default name of pShare)\n";
+	std::cout<<"c)   \"./pShare special.moos --alias pShare2\" (register under MOOSName of pShare2)\n";
+	std::cout<<"d)   \"./pShare --config special.moos --alias pShare2\" (register under MOOSName of pShare2)\n";
+
+	std::cout<<YELLOW<<"\nSpecifying shares from the command line:\n\n"<<NORMAL<<
+			" Outputs are specified as :\n\n"
+			"        'src_var->route & route & ....' \n\n"
+			" where a \"route\" is a string with any of the following formats\n\n"
+			"    dest_var:dest_host:dest_port:transport\n"
+			"    dest_host:dest_port:transport\n"
+			"    dest_var:multicast_channel\n"
+			"    multicast_channel\n\n"
+			" This looks more complicated than it is so some examples are helpful\n\n"
+			" 1) sharing \"VAR1\" to port 10007 on 18.38.2.158 as udp and call it \"Var2\" \n"
+			"  ./pShare  -o 'VAR1->Var2:18.38.2.158:10007:udp' \n"
+			" 2) if you aren't bothered about renaming...\n"
+			"  ./pShare  -o 'VAR1->oceanai.mit.edu:10007:udp' \n"
+			" 3) if you want to use a predefined multicast channel, say 8,...\n"
+			"  ./pShare  -o 'VAR1->multicast_8' \n"
+			" 4) if you want to rename the variable\n"
+			"  ./pShare  -o 'VAR1->VAR3:multicast_8\n\n"
+			" Of course any variable can be sent to many routes. Here we send VAR1 to three places\n"
+			" multicast channel 8 as VAR3, multicast channel 2 as VAR1 (no renaming) and a machine\n"
+			" called oceanaias \"oranges\":\n\n"
+			" 5) ./pShare  -o 'VAR1->VAR3:multicast_8 & multicast_2 & oranges:oceanai.mit.edu:10007:udp' \n\n"
+			" And finally you can specify many shares at once. Here we share VAR1 and VAR2\n\n"
+			" 6) ./pShare  -o 'VAR1->multicast_8' 'VAR2->oranges:oceanai.mit.edu:10007:udp' \n\n";
+
+
+	std::cout<<YELLOW<<"\nSpecifying wildcard shares:\n\n"<<NORMAL<<
+			" MOOS Supports wildcard subscriptions and this reflected in pShare. It is possible\n"
+			" to replace src_var with a var_pattern:app_pattern tuple. Only * and ? wildcarding\n"
+			" is supported. The app_pattern can be ommitted and a * is assumed. Again some examples\n"
+			" are helpful.\n\n"
+			" 7) sharing anything from an app called MyApp to a port on ocean AI, no renaming and\n"
+			"    multicast 8:\n"
+			"   ./pShare -o '*:MyApp->oceanai.mit.edu:1007:udp & multicast_8' \n"
+			" 8) sharing any variable ending _WARNING from any three letter-named app beginning with ST \n"
+			"   ./pShare -o '*_WARNING:ST?->localhost:8009:udp\n\n"
+			" Renaming on wildcard shares is of coruse hard to specify (you don't know what is going to\n"
+			" fit the bill. So in the case of wildcarding the dest_name field, if specified is used as\n"
+			" a prefix:\n\n"
+			" 9) sharing any variable <V> beginning with X e from an app called GPS as shared_<V>\n"
+			"   ./pShare -o 'V*:GPS->shared_:localhost:8009:udp\n\n ";
+
+
+
+
 
 	exit(0);
 }
 
 void ShareHelp::PrintInterfaceAndExit()
 {
-	std::cerr<<RED<<"\n--------------------------------------------\n";
-	std::cerr<<RED<<"      \"pShare\" Interface Description    \n";
-	std::cerr<<RED<<"--------------------------------------------\n";
+	std::cout<<RED<<"\n--------------------------------------------\n";
+	std::cout<<RED<<"      \"pShare\" Interface Description    \n";
+	std::cout<<RED<<"--------------------------------------------\n";
 
-	std::cerr<<GREEN<<"\nSynopsis:\n\n"<<NORMAL;
-	std::cerr<<
+	std::cout<<GREEN<<"\nSynopsis:\n\n"<<NORMAL;
+	std::cout<<
 			"Transfers data between a connected MOOSDB and udp based connections.\n"
 			"Best way to understand this is via an example. A client could be publishing\n"
 			"variable X to the DB, pShare can subscribe to that variable, rename it as\n"
@@ -103,36 +150,36 @@ void ShareHelp::PrintInterfaceAndExit()
 			"pShare supports dynamic sharing configuration by subscribing to PSHARE_CMD\n"
 			"or <AppName>_CMD if running under and alias.\n";
 
-	std::cerr<<GREEN<<"\nSubscriptions:\n\n"<<NORMAL;
-	std::cerr<<"  a) <AppName>_CMD\n\n";
-	std::cerr<<YELLOW<<"PSHARE_CMD\n"<<NORMAL;
-	std::cerr<<"This variable can be used to dynamically configure sharing at run time\n"
+	std::cout<<GREEN<<"\nSubscriptions:\n\n"<<NORMAL;
+	std::cout<<"  a) <AppName>_CMD\n\n";
+	std::cout<<YELLOW<<"PSHARE_CMD\n"<<NORMAL;
+	std::cout<<"This variable can be used to dynamically configure sharing at run time\n"
 			"It has the following format:\n";
 
 
 
 
-	std::cerr<<GREEN<<"\nPublishes:\n\n"<<NORMAL;
-	std::cerr<<"  a) <AppName>_INPUT_SUMMARY\n";
-	std::cerr<<"  b) <AppName>_OUTPUT_SUMMARY\n\n";
+	std::cout<<GREEN<<"\nPublishes:\n\n"<<NORMAL;
+	std::cout<<"  a) <AppName>_INPUT_SUMMARY\n";
+	std::cout<<"  b) <AppName>_OUTPUT_SUMMARY\n\n";
 
 
-	std::cerr<<YELLOW<<"PSHARE_OUTPUT_SUMMARY\n"<<NORMAL;
-	std::cerr<<"This variable describes the forwarding or sharing currently being undertaken by pShare.\n";
-	std::cerr<<"\nIt has the following format:\n ";
-	std::cerr<<"  Output = src_name->route1 & route 2, src_name->route1 & route 2....\n";
-	std::cerr<<"where a route is a colon delimited tuple\n ";
-	std::cerr<<"  dest_name:host_name:port:protocol \n";
-	std::cerr<<"example:\n";
-	std::cerr<<"  \"Output = X->Y:165.45.3.61:9000:udp & Z:165.45.3.61.2000:multicast_8,K->K:192.168.66.12:3000:udp\"\n";
-	std::cerr<<"\n\n";
-	std::cerr<<YELLOW<<"PSHARE_INPUT_SUMMARY\n"<<NORMAL;
-	std::cerr<<"This variable describes channels and ports on which pShare receives data.\n";
-	std::cerr<<"\nIt has the following format:\n ";
-	std::cerr<<"  Input = hostname:port:protocol,hostname:port:protocol...\n";
-	std::cerr<<"example:\n";
-	std::cerr<<"  \"input = localhost:9001:udp , 221.1.1.18:multicast_18\"\n";
-	std::cerr<<"\n\n";
+	std::cout<<YELLOW<<"PSHARE_OUTPUT_SUMMARY\n"<<NORMAL;
+	std::cout<<"This variable describes the forwarding or sharing currently being undertaken by pShare.\n";
+	std::cout<<"\nIt has the following format:\n ";
+	std::cout<<"  Output = src_name->route1 & route 2, src_name->route1 & route 2....\n";
+	std::cout<<"where a route is a colon delimited tuple\n ";
+	std::cout<<"  dest_name:host_name:port:protocol \n";
+	std::cout<<"example:\n";
+	std::cout<<"  \"Output = X->Y:165.45.3.61:9000:udp & Z:165.45.3.61.2000:multicast_8,K->K:192.168.66.12:3000:udp\"\n";
+	std::cout<<"\n\n";
+	std::cout<<YELLOW<<"PSHARE_INPUT_SUMMARY\n"<<NORMAL;
+	std::cout<<"This variable describes channels and ports on which pShare receives data.\n";
+	std::cout<<"\nIt has the following format:\n ";
+	std::cout<<"  Input = hostname:port:protocol,hostname:port:protocol...\n";
+	std::cout<<"example:\n";
+	std::cout<<"  \"input = localhost:9001:udp , 221.1.1.18:multicast_18\"\n";
+	std::cout<<"\n\n";
 
 
 	exit(0);

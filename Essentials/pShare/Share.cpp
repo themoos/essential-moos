@@ -20,6 +20,8 @@
 #include "MOOS/libMOOS/Thirdparty/getpot/getpot.h"
 #include "MOOS/libMOOS/Utils/SafeList.h"
 #include "MOOS/libMOOS/Utils/ConsoleColours.h"
+#include "MOOS/libMOOS/Utils/KeyboardCapture.h"
+
 #include "MOOS/libMOOS/App/MOOSApp.h"
 
 #include "Listener.h"
@@ -46,43 +48,6 @@ struct Socket {
 	MOOS::IPV4Address address;
 	int socket_fd;
 	struct sockaddr_in sock_addr;
-};
-
-class KeyboardCapture
-{
-public:
-	static bool dispatch(void * param)
-	{
-		KeyboardCapture* pMe = (KeyboardCapture*)param;
-		return pMe->Capture();
-	}
-	bool Capture()
-	{
-		while(!worker_.IsQuitRequested())
-		{
-			char c = MOOSGetch();
-			queue_.Push(c);
-		}
-		return true;
-	}
-	bool Start()
-	{
-		worker_.Initialise(dispatch,this);
-		return worker_.Start();
-	}
-
-	bool GetKeyboardInput(char & input)
-	{
-		if(queue_.Size()==0)
-			return false;
-
-		return queue_.Pull(input);
-	}
-private:
-	CMOOSThread worker_;
-	MOOS::SafeList<char> queue_;
-
-
 };
 
 class Share::Impl: public CMOOSApp {
@@ -241,6 +206,15 @@ bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_f
 		ProcessShortHandIOConfigurationString(outputs[i],true);
 	}
 
+	std::vector<std::string> inputs = cl.nominus_followers(2,"-in","--input");
+	for(unsigned int i = 0;i<inputs.size();i++)
+	{
+		std::cerr<<inputs[i]<<std::endl;
+		ProcessShortHandIOConfigurationString(inputs[i],false);
+	}
+
+
+
 	return BASE::Run(moos_name.c_str(),moos_file.c_str());
 }
 
@@ -300,91 +274,115 @@ bool Share::Impl::OnStartUp()
 bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuration_string, bool is_output)
 {
 	std::string copy_config = configuration_string;
-	//X->Y:165.45.3.61:9000:udp & Z:multicast_8
-	std::string src_name = MOOS::Chomp(configuration_string,"->");
-	while(!configuration_string.empty())
+
+	if(is_output)
 	{
-		std::string route_description = trim(MOOS::Chomp(configuration_string,"&"));
-		std::list<std::string> parts;
-
-		while(!route_description.empty())
+		//X->Y:165.45.3.61:9000:udp & Z:multicast_8
+		std::string src_name = MOOS::Chomp(configuration_string,"->");
+		while(!configuration_string.empty())
 		{
-			parts.push_back(MOOS::Chomp(route_description,":"));
+			std::string route_description = trim(MOOS::Chomp(configuration_string,"&"));
+			std::list<std::string> parts;
+
+			while(!route_description.empty())
+			{
+				parts.push_back(MOOS::Chomp(route_description,":"));
+			}
+
+			std::string dest_name = src_name;
+
+			if(parts.back().find("udp")==0)
+			{
+				if(parts.size()==4)
+				{
+					dest_name = parts.front();parts.pop_front();
+				}
+				std::string host_name = parts.front();parts.pop_front();
+				std::string host_port = parts.front();parts.pop_front();
+				std::string destination = host_name+":"+host_port;
+
+				std::string io;
+				MOOSAddValToString(io,"src_name",src_name);
+				MOOSAddValToString(io,"dest_name",dest_name);
+				MOOSAddValToString(io,"route",destination);
+				try
+				{
+					ProcessIOConfigurationString(io,true);
+				}
+				catch(const std::exception & e)
+				{
+					std::cerr<<RED<<"short hand failed to parse "<<copy_config
+							<<" "<<e.what()<<std::endl<<NORMAL;
+				}
+
+
+			}
+			else if(parts.back().find("multicast")==0)
+			{
+				std::string host_name;
+				std::string host_port;
+				std::string multicast_channel;
+				switch(parts.size())
+				{
+				case 4:
+					//X:212.1.1.3:80453:multicast
+					dest_name = parts.front();parts.pop_front();
+				case 3:
+					//212.1.1.3:80453:multicast
+					host_name = parts.front();parts.pop_front();
+					host_port = parts.front();parts.pop_front();
+					multicast_channel = host_name+":"+host_port;
+					break;
+				case 2:
+					//X:multicast_8
+					dest_name = parts.front();parts.pop_front();
+				case 1:
+					//multicast_8
+					multicast_channel = parts.front();parts.pop_front();
+					break;
+				}
+
+				std::string io;
+				MOOSAddValToString(io,"src_name",src_name);
+				MOOSAddValToString(io,"dest_name",dest_name);
+				MOOSAddValToString(io,"route",multicast_channel);
+
+				try
+				{
+					ProcessIOConfigurationString(io,true);
+				}
+				catch(const std::exception & e)
+				{
+					std::cerr<<RED<<"shorthand failed to parse:\n   "
+							<<copy_config<<" \n"
+							<<io<<" \n"<<e.what()<<std::endl<<NORMAL;
+				}
+
+
+
+			}
+
+
 		}
+	}
+	else
+	{
 
-		std::string dest_name = src_name;
+		std::string io;
+		MOOSAddValToString(io,"route", configuration_string);
 
-		if(parts.back().find("udp")==0)
+		//this is an input
+		// --input multicast_8 & 192.45.3.4:9000 &
+		try
 		{
-			if(parts.size()==4)
-			{
-				dest_name = parts.front();parts.pop_front();
-			}
-			std::string host_name = parts.front();parts.pop_front();
-			std::string host_port = parts.front();parts.pop_front();
-			std::string destination = host_name+":"+host_port;
-
-			std::string io;
-			MOOSAddValToString(io,"src_name",src_name);
-			MOOSAddValToString(io,"dest_name",dest_name);
-			MOOSAddValToString(io,"route",destination);
-			try
-			{
-				ProcessIOConfigurationString(io,true);
-			}
-			catch(const std::exception & e)
-			{
-				std::cerr<<RED<<"short hand failed to parse "<<copy_config
-						<<" "<<e.what()<<std::endl<<NORMAL;
-			}
-
-
+			ProcessIOConfigurationString(io,false);
 		}
-		else if(parts.back().find("multicast")==0)
+		catch(const std::exception & e)
 		{
-			std::string host_name;
-			std::string host_port;
-			std::string multicast_channel;
-			switch(parts.size())
-			{
-			case 4:
-				//X:212.1.1.3:80453:multicast
-				dest_name = parts.front();parts.pop_front();
-			case 3:
-				//212.1.1.3:80453:multicast
-				host_name = parts.front();parts.pop_front();
-				host_port = parts.front();parts.pop_front();
-				multicast_channel = host_name+":"+host_port;
-				break;
-			case 2:
-				//X:multicast_8
-				dest_name = parts.front();parts.pop_front();
-			case 1:
-				//multicast_8
-				multicast_channel = parts.front();parts.pop_front();
-				break;
-			}
-
-			std::string io;
-			MOOSAddValToString(io,"src_name",src_name);
-			MOOSAddValToString(io,"dest_name",dest_name);
-			MOOSAddValToString(io,"route",multicast_channel);
-
-			try
-			{
-				ProcessIOConfigurationString(io,true);
-			}
-			catch(const std::exception & e)
-			{
-				std::cerr<<RED<<"shorthand failed to parse:\n   "
-						<<copy_config<<" \n"
-						<<io<<" \n"<<e.what()<<std::endl<<NORMAL;
-			}
-
-
-
+			std::cerr<<RED<<"shorthand failed to parse:\n   "
+					<<copy_config<<" \n"
+					<<io<<" \n"<<e.what()<<std::endl<<NORMAL;
 		}
-
 
 	}
 
@@ -726,7 +724,7 @@ bool Share::Impl::PrintSocketMap()
 
 void Share::Impl::PrintRoutes()
 {
-	std::cout<<"---------------------- ROUTING INFORMATION ------------------------------------"<<std::endl;
+	std::cout<<"---------------------- "<<YELLOW<<"ROUTING INFORMATION"<<NORMAL<<" ------------------------------------"<<std::endl;
 
 	std::cout<<GREEN<<"Standard Routes:\n"<<NORMAL;
 	if(routing_table_.empty())
