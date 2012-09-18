@@ -32,16 +32,11 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "MOOSBridge.h"
-#include "MOOS/libMOOS/Utils/MOOSUtilityFunctions.h"
 #include "MOOSCommunity.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
-
-
-namespace MOOS
-{
 
 #define DEFAULT_BRIDGE_FREQUENCY 20
 #define DEFAULT_UDP_PORT 10000
@@ -49,210 +44,38 @@ namespace MOOS
 #define BOUNCE_WITH_GUSTO 0
 using namespace std;
 
-
-Bridge::Bridge()
+CMOOSBridge::CMOOSBridge()
 {
     m_nBridgeFrequency    = DEFAULT_BRIDGE_FREQUENCY;
     m_sLocalCommunity = "#1";
-    m_bAllowLoopBack   = false;
 }
 
-Bridge::~Bridge()
+CMOOSBridge::~CMOOSBridge()
 {
     
 }
 
-bool Bridge::OnNewMail(MOOSMSG_LIST & NewMail)
+bool CMOOSBridge::Run(const string &sMissionFile,const string & sMOOSName)
 {
-	MOOSMSG_LIST::iterator m;
-	for(m=NewMail.begin();m!=NewMail.end();m++)
-	{
-		if(MOOSStrCmp(m->GetKey(),"PMB_REGISTER"))
-			HandleDynamicShareRequest(m->GetString());
-	}
-	return true;
-}
-
-bool Bridge::HandleDynamicShareRequest(std::string sStr)
-{
-	Bridge::ShareInfo SI;
-
-	// Example String :
-	// "SrcVarName=DB_CLIENTS,DestCommunity=henry,DestCommunityHost=128.30.24.246,DestCommunityPort=9201,DestVarName=BAR"
-
-
-	//some defaults
-	SI._SrcCommunity = m_sLocalCommunity;
-	SI._SrcCommunityHost = "LOCALHOST";
-	SI._SrcCommunityPort = "9000";
-	SI._UseUDP = true;
-
-	//which could be overridden
-	MOOSValFromString(SI._UseUDP,sStr,"UseUDP");
-	MOOSValFromString(SI._SrcCommunity,sStr,"SrcCommunity");
-	MOOSValFromString(SI._SrcCommunityHost,sStr,"SrcCommunityHost");
-	MOOSValFromString(SI._SrcCommunityPort,sStr,"SrcCommunityPort");
-
-	//and these are compulsory
-	if(!MOOSValFromString(SI._SrcVarName,sStr,"SrcVarName"))
-		return false;
-
-	if(!MOOSValFromString(SI._DestCommunity,sStr,"DestCommunity"))
-		return false;
-
-	if(!MOOSValFromString(SI._DestCommunityHost,sStr,"DestCommunityHost"))
-		return false;
-
-	if(!MOOSValFromString(SI._DestCommunityPort,sStr,"DestCommunityPort"))
-		return false;
-
-	if(!MOOSValFromString(SI._DestVarName,sStr,"DestVarName"))
-		return false;
-
-	if(AddShare(SI))
-	{
-		MOOSTrace("dynamic share successful\n[-- %s --]\n",sStr.c_str());
-	}
-	else
-	{
-		MOOSTrace("dynamic share FAIL\n[-- %s --]\n",sStr.c_str());
-	}
-
-	return true;
-}
-
-bool Bridge::AddShare(ShareInfo SI)
-{
-	  //look for loopback - not always wanted
-	if (MOOSStrCmp(SI._DestCommunityHost, SI._SrcCommunityHost)
-		&& MOOSStrCmp(SI._DestCommunityPort, SI._SrcCommunityPort))
-	{
-		if (m_bAllowLoopBack == false)
-		{
-			MOOSTrace("\t Ignoring Loop Back - (bridge not built)\n");
-			return (false);
-		}
-	}
-
-	//convert to numeric after format checking
-	if (SI._SrcCommunity.empty() || SI._SrcCommunityHost.empty()
-			|| SI._SrcCommunityPort.empty())
-		return MOOSFail("empty SrcCommunity field");
-
-	if (SI._DestCommunity.empty() || SI._DestCommunityHost.empty()
-			|| SI._DestCommunityPort.empty())
-		return MOOSFail("empty DestCommunity field");
-
-	long lSrcPort = atoi(SI._SrcCommunityPort.c_str());
-	long lDestPort = atoi(SI._DestCommunityPort.c_str());
-
-	//we will force all broadcast address directives to be the same "community" called "ALL"
-	if (MOOSStrCmp(SI._DestCommunityHost, "BROADCAST") || MOOSStrCmp(
-			SI._DestCommunity, "ALL"))
-	{
-		//this is trixksy - need to qualify this generic address with the a port so each Bridge can
-		//UDP broadcast to multiple addresses
-		SI._DestCommunity = "ALL";
-		SI._DestCommunityHost = "BROADCAST-" + SI._DestCommunityPort;
-	}
-
-	//make two communities (which will be bridged)
-	CMOOSCommunity* pSrcCommunity = GetOrMakeCommunity(SI._SrcCommunity,SI._SrcCommunityHost);
-	CMOOSCommunity* pDestCommunity = GetOrMakeCommunity(SI._DestCommunity,SI._DestCommunity);
-
-	if (!SI._UseUDP)
-	{
-		// depending on what kind of share this is we may want to simply specify
-		// a UDP end point or start a MOOS client
-		// we will register with each DB with a unique name
-		std::string sFullyQualifiedMOOSName = m_MissionReader.GetAppName()
-				+ "@" + m_sLocalCommunity;
-
-		//for (connecting to) the source community (where messages come from)
-		if (!pSrcCommunity->IsMOOSClientRunning()) {
-			pSrcCommunity->InitialiseMOOSClient(SI._SrcCommunityHost, lSrcPort,
-					sFullyQualifiedMOOSName, m_nBridgeFrequency);
-		}
-
-		// for (connecting to) the destination community (where messages go to)
-		if (!pDestCommunity->IsMOOSClientRunning()) {
-			pDestCommunity->InitialiseMOOSClient(SI._DestCommunityHost,
-					lDestPort, sFullyQualifiedMOOSName, m_nBridgeFrequency);
-		}
-	}
-	else
-	{
-		// MOOSTrace("Setting UDP port for community %s as %s:%d\n",pDestCommunity->GetCommunityName().c_str(),
-		// dest_community_host.c_str(),lDestPort);
-		if (SI._DestCommunityHost.find("BROADCAST-") != std::string::npos
-				&& MOOSStrCmp(SI._DestCommunity, "ALL")) {
-			//this is special
-			pDestCommunity->SetUDPInfo("255.255.255.255", lDestPort);
-		}
-		else
-		{
-			pDestCommunity->SetUDPInfo(SI._DestCommunityHost, lDestPort);
-		}
-	}
-
-	//populate bridge with variables to be shared (including translation)
-	if (pSrcCommunity && pDestCommunity)
-	{
-		string sVar = MOOSChomp(SI._SrcVarName, ",");
-		while (!sVar.empty()) {
-			pSrcCommunity->AddSource(sVar);
-			CMOOSCommunity::SP Index(sVar, pSrcCommunity->GetCommunityName());
-			pDestCommunity->AddSink(Index, MOOSChomp(SI._DestVarName, ","));
-
-			if (SI._UseUDP)
-			{
-				//we need to store in the Bridge class what variables appearing in our
-				//local community we are asked to forward on via UDP to some other
-				//commnity
-				m_UDPShares.insert(Index);
-			}
-
-			//suck another VAR
-			sVar = MOOSChomp(SI._SrcVarName, ",");
-		}
-	}
-	return true;
+    if(!m_MissionReader.SetFile(sMissionFile))
+        return false;
+    
+    m_MissionReader.SetAppName(sMOOSName);
+    
+    if(!Configure())
+    {
+        return MOOSFail("MOOSBridge failed to configure itself - probably a configuration block error\n");;
+    }
+    while(1)
+    {
+        MarshallLoop();
+        MOOSPause(50);
+    }
+    return true;
 }
 
 
-bool Bridge::Iterate()
-{
-  return MarshallLoop();
-
-}
-
-bool Bridge::OnStartUp()
-{
-	if(!Configure())
-		return MOOSFail("MOOSBridge failed to configure itself - probably a configuration block error\n");
-
-	//	if(!RegisterVariables())
-	//		return MOOSFail("MOOSBridge failed to register variables\n");
-	RegisterVariables(); // change by mikerb
-
-	return true;
-}
-
-
-bool Bridge::OnConnectToServer()
-{
-  return RegisterVariables();
-}
-
-bool Bridge::RegisterVariables()
-{
-  return m_Comms.Register("PMB_REGISTER", 0);
-}
-
-
-
-
-bool Bridge::MarshallLoop()
+bool CMOOSBridge::MarshallLoop()
 {
     COMMUNITY_MAP::iterator p,q;
     MOOSMSG_LIST InMail;
@@ -364,12 +187,12 @@ bool Bridge::MarshallLoop()
     return true;
 }
 
-bool Bridge::IsUDPShare(CMOOSCommunity::SP & Index)
+bool CMOOSBridge::IsUDPShare(CMOOSCommunity::SP & Index)
 {
     return !m_UDPShares.empty() && m_UDPShares.find(Index)!=m_UDPShares.end();
 }
 
-bool Bridge::Configure()
+bool CMOOSBridge::Configure()
 {
     STRING_LIST sParams;
     
@@ -378,7 +201,8 @@ bool Bridge::Configure()
     
     //if user set LOOPBACK = TRUE then both src and destination communities can be identical
     //default is FALSE this means if src=dest then the bridging will be ignored
-    m_MissionReader.GetConfigurationParam("LOOPBACK",m_bAllowLoopBack);
+    bool bAllowLoopBack = false;
+    m_MissionReader.GetConfigurationParam("LOOPBACK",bAllowLoopBack);
     
     
     //capture default file scope settings - maybe useful later
@@ -405,7 +229,7 @@ bool Bridge::Configure()
     m_nBridgeFrequency = DEFAULT_BRIDGE_FREQUENCY;
     m_MissionReader.GetConfigurationParam("BridgeFrequency",m_nBridgeFrequency);
     
-    //loop over every parameter line looking for a SHARE directive
+    
     STRING_LIST::iterator q;
     
     for(q = sParams.begin();q!=sParams.end();q++)
@@ -420,12 +244,8 @@ bool Bridge::Configure()
         
         if(MOOSStrCmp(sCmd,"SHARE") || MOOSStrCmp(sCmd,"UDPSHARE") )
         {
-
-        	// here comes some tedious syntax parsing
             bool bUDP = MOOSStrCmp(sCmd,"UDPSHARE");
             
-            Bridge::ShareInfo SI;
-
             string sSrc = MOOSChomp(sLine,"->");
             string sDest = sLine;
             
@@ -458,31 +278,121 @@ bool Bridge::Configure()
             string sDestCommunityPort = MOOSChomp(sDest,"[");
             string sAliases = MOOSChomp(sDest,"]");
             
-            SI._SrcVarName  = sVars;      // added by mikerb jan04/12
-            SI._DestVarName = sAliases;   // added by mikerb jan04/12
-
-            SI._SrcCommunity = sSrcCommunity;
-            SI._SrcCommunityHost = sSrcCommunityHost;
-            SI._SrcCommunityPort = sSrcCommunityPort;
-            SI._DestCommunity = sDestCommunity;
-            SI._DestCommunityHost = sDestCommunityHost;
-            SI._DestCommunityPort = sDestCommunityPort;
-            SI._UseUDP = bUDP;
-
-
-            
-            //now we can add the share explicitly
-            if(!AddShare(SI))
+            //look for loopback - not always wanted
+            if(MOOSStrCmp(sDestCommunityHost,sSrcCommunityHost) && 
+               MOOSStrCmp(sDestCommunityPort,sSrcCommunityPort))
             {
-            	MOOSTrace("failed to add a share from a configuration block line\n%s\n",q->c_str());
-            	MOOSTrace("correct format is \n");
-            	MOOSTrace("SHARE = COMMUNITYNAME@HOSTNAME:PORT [VAR1,VAR2,VAR3,....] -> COMMUNITYNAME@HOSTNAME:PORT\n");
-            	continue;
+                if(bAllowLoopBack==false)
+                {
+                    MOOSTrace("\t Ignoring Loop Back - (bridge not built)\n");
+                    continue;
+                }
             }
+            
+            //convert to numeric after format checking
+            long lSrcPort=0;
+            if(sSrcCommunity.empty() || sSrcCommunityHost.empty() ||sSrcCommunityPort.empty())
+            {
+                MOOSTrace("error on SHARED configuration %s\n correct line format is \nSHARE = COMMUNITYNAME@HOSTNAME:PORT [VAR1,VAR2,VAR3,....] -> COMMUNITYNAME@HOSTNAME:PORT\n",q->c_str());        
+                continue;
+            }
+            else
+            {
+                lSrcPort = atoi(sSrcCommunityPort.c_str());            
+            }
+            
+            long lDestPort=0;
+            if(sDestCommunity.empty() || sDestCommunityHost.empty() ||sDestCommunityPort.empty())
+            {
+                MOOSTrace("error on SHARED configuration %s\n correct line format is \nSHARE = COMMUNITYNAME@HOSTNAME:PORT [VAR1,VAR2,VAR3,....] -> COMMUNITYNAME@HOSTNAME:PORT\n",q->c_str());        
+                continue;
+            }
+            else
+            {
+                lDestPort = atoi(sDestCommunityPort.c_str());            
+            }
+            
+            //we will force all broadcast address directives to be the same "community" called "ALL"
+            if(MOOSStrCmp(sDestCommunityHost, "BROADCAST") || MOOSStrCmp(sDestCommunity, "ALL"))
+            {
+                //this is trixksy - need to qualify this generic address with the a port so each Bridge can
+                //UDP broadcast to multiple addresses
+                sDestCommunity="ALL";
+                sDestCommunityHost = "BROADCAST-"+sDestCommunityPort;
+            }
+            
+            //make two communities (which will be bridged)
+            CMOOSCommunity* pSrcCommunity =  GetOrMakeCommunity(sSrcCommunity);
+            
+            CMOOSCommunity* pDestCommunity =  GetOrMakeCommunity(sDestCommunity);
+            
+            if(!bUDP)
+            {
+                //depending on what kind of share this is we may want to simply specify
+                //a UDP end point or start a MOOS client
+                
+                //we will register with each DB with a unique name
+                std::string sFullyQualifiedMOOSName = m_MissionReader.GetAppName()+"@"+m_sLocalCommunity;
 
+                
+                //for (connecting to) the source community (where messages come from)
+                if(!pSrcCommunity->IsMOOSClientRunning())
+                {
+                	pSrcCommunity->InitialiseMOOSClient(sSrcCommunityHost,
+                                                        lSrcPort,
+                                                        sFullyQualifiedMOOSName,
+                                                        m_nBridgeFrequency);
+                }
+                
+                //for (connecting to) the destination community (where messages go to)
+                if(!pDestCommunity->IsMOOSClientRunning())
+                {
+                	pDestCommunity->InitialiseMOOSClient(sDestCommunityHost,
+                                                         lDestPort,
+                                                         sFullyQualifiedMOOSName,
+                                                         m_nBridgeFrequency);
+                }
+                
+            }
+            else
+            {
+                //MOOSTrace("Setting UDP port for community %s as %s:%d\n",pDestCommunity->GetCommunityName().c_str(),sDestCommunityHost.c_str(),lDestPort);
+                if(sDestCommunityHost.find("BROADCAST-")!=std::string::npos  && MOOSStrCmp(sDestCommunity,"ALL"))
+                {
+                    //this is special
+                    pDestCommunity->SetUDPInfo("255.255.255.255", lDestPort);                
+                }
+                else
+                {
+                	pDestCommunity->SetUDPInfo(sDestCommunityHost, lDestPort);                
+                }
+            }
+            
+            //populate bridge with variables to be shared (including translation)
+            if(pSrcCommunity && pDestCommunity)
+            {
+                string sVar = MOOSChomp(sVars,",");
+                while(!sVar.empty())
+                {
+                    pSrcCommunity->AddSource(sVar);
+                    CMOOSCommunity::SP Index(sVar,pSrcCommunity->GetCommunityName() );
+                    pDestCommunity->AddSink(Index,MOOSChomp(sAliases,","));
+                    
+                    if(bUDP)
+                    {
+                        //we need to store in the Bridge class what variables appearing in our
+                        //local community we are asked to forward on via UDP to some other
+                        //commnity
+                    	m_UDPShares.insert(Index);
+                    }
+                    
+                    //suck another VAR
+                    sVar =  MOOSChomp(sVars,",");
+                }
+            }                        
         }
         
-    }//end of passing line by line looking for *SHARE directives
+    }
     
     ///think about setting up UDP connections....there is one UDP Link per instance of a 
     //MOOSBridge. If poepl wnat UDP bridging they need on pMOOSBridge per community (ie the 
@@ -492,7 +402,7 @@ bool Bridge::Configure()
     {
         //start the UDP listener
         m_UDPLink.Run(nLocalUDPPort);
-        m_Comms.Notify("PMB_UDP_LISTEN", nLocalUDPPort);
+
     }
 	else
 	{
@@ -501,17 +411,15 @@ bool Bridge::Configure()
         //passing run with a -1 port means build the socket but don't bind or start a listen thread
         m_UDPLink.Run(-1);
     }
-
-
     //ensure we have at least the local MOOS-enabled community in existence - maybe all we want to do is map LocalMOOS->UDP_Out
-    CMOOSCommunity * pLocalCommunity  = GetOrMakeCommunity(m_sLocalCommunity,"LOCALHOST");
+    CMOOSCommunity * pLocalCommunity  = GetOrMakeCommunity(m_sLocalCommunity);
     
     if(pLocalCommunity!=NULL && !pLocalCommunity->IsMOOSClientRunning())
     {
         //make a connection to the local DB
         pLocalCommunity->InitialiseMOOSClient(sLocalHost, 
                                               atoi(sLocalPort.c_str()),
-                                              m_MissionReader.GetAppName()+ "@" + m_sLocalCommunity, // hack by mikerb moderated by pmn
+                                              m_MissionReader.GetAppName(),
                                               m_nBridgeFrequency);
     }
     
@@ -520,16 +428,15 @@ bool Bridge::Configure()
 
 
 
-CMOOSCommunity * Bridge::GetOrMakeCommunity(const string &sCommunity, const string & sHostMachine)
+CMOOSCommunity * CMOOSBridge::GetOrMakeCommunity(const string &sCommunity)
 {
     CMOOSCommunity* pCommunity = NULL;
-    std::string sKey = sCommunity+"@"+sHostMachine;
-    COMMUNITY_MAP::iterator p = m_Communities.find(sKey);
+    COMMUNITY_MAP::iterator p = m_Communities.find(sCommunity);
     if(p==m_Communities.end())
     {
         pCommunity = new CMOOSCommunity;
         pCommunity->Initialise(sCommunity);
-        m_Communities[sKey] = pCommunity;
+        m_Communities[sCommunity] = pCommunity;
     }
     else
     {
@@ -538,6 +445,3 @@ CMOOSCommunity * Bridge::GetOrMakeCommunity(const string &sCommunity, const stri
     
     return pCommunity;
 }
-
-
-};//namespace MOOS

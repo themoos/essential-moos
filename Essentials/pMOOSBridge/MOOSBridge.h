@@ -33,134 +33,31 @@
 #include "MOOS/libMOOS/MOOSLib.h"
 #include "MOOSCommunity.h"
 
-namespace MOOS
-{
-/**
- * A class which manages the transmission/sharing of data between communities via tcp and udp
- */
-class Bridge : public CMOOSApp
+class CMOOSBridge
 {
 public:
-    Bridge();
-    virtual ~Bridge();
-
-    /**
-     * standard OnNewMail
-     * @param NewMail - the mail
-     * @return
-     */
-	bool OnNewMail(MOOSMSG_LIST &NewMail);
-
-	/**
-	 * standard iterate - this is where the work happens
-	 * @return
-	 */
-	bool Iterate();
-
-	/**
-	 * standard CMOOSApp startup - called once  before iterate starts being called
-	 * again and again
-	 * @return true on success
-	 */
-	bool OnStartUp();
-
-	/**
-	 * called when this MOOSApp connects to a DB. Good place to register interest in variables
-	 * @return true on success
-	 */
-	bool OnConnectToServer();
-
-protected:
-
-	/**
-	 * a struct used when adding a new share
-	 */
-	struct ShareInfo
-	{
-		std::string _SrcCommunity;
-		std::string _SrcCommunityHost;
-		std::string _SrcCommunityPort;
-		std::string _SrcVarName;
-		std::string _DestCommunity;
-		std::string _DestCommunityHost;
-		std::string _DestCommunityPort;
-		std::string _DestVarName;
-		bool _UseUDP;
-	};
 
     bool Configure();
+    CMOOSBridge();
+    virtual ~CMOOSBridge();
+    bool Run(const std::string & sMissionFile,const std::string & sMOOSName);
 
-    /**
-     * called when MOOS comms deliver a erquest for a share to be made on the fly
-     * @param sStr - a string containing share details. Example form is
-     *  "SrcVarName=DB_CLIENTS,DestCommunity=henry,DestCommunityHost=128.30.24.246,
-     *   DestCommunityPort=9201,DestVarName=BAR"
-     *
-     * @return true on success
-     */
-    bool HandleDynamicShareRequest(std::string  sStr);
-
-    /**
-     * Add a share based on information in ShareInfo struct
-     * @param Info
-     * @return tru on success
-     */
-    bool AddShare(ShareInfo Info);
-
-    /**
-     * register interest in some variables with the MOOS comms layer
-     * @return true on success
-     */
-    bool RegisterVariables();
-
-    /**
-     * Make and return or simply fetch a MOOS community object
-     * @param sCommunity name of community
-     * @return NULL on failure
-     */
-//    CMOOSCommunity * GetOrMakeCommunity(const std::string & sCommunity);
-    CMOOSCommunity * GetOrMakeCommunity(const std::string &sCommunity, const std::string & sHostMachine);
-
-
-    /**
-     * The wizardry routine which does all the marshalling twixt communities
-     * @return true on success
-     */
+protected:
+    CMOOSCommunity * GetOrMakeCommunity(const std::string & sCommunity);
     bool MarshallLoop();
-
-    /**
-     * simple question - is the referred to community linked to via UDP?
-     * @param Index
-     * @return
-     */
     bool IsUDPShare(CMOOSCommunity::SP & Index);
     
-
-
-    /**
-     * how often to run the bridging routine
-     */
-    int m_nBridgeFrequency;
-
-    /**
-     * true if loopback is wanted
-     */
-    bool m_bAllowLoopBack;
-
-    /** name of local community  to which we belong*/
-    std::string m_sLocalCommunity;
-
-    /**
-     * a UDPLink manager
-     */
-    CMOOSUDPLink m_UDPLink;
-    
-    /** a collection of shares*/
     typedef std::map<std::string,CMOOSCommunity*> COMMUNITY_MAP;
     COMMUNITY_MAP m_Communities;
-    std::set< CMOOSCommunity::SP > m_UDPShares;
-};
 
+    CProcessConfigReader m_MissionReader;
+
+    int m_nBridgeFrequency;
+    std::string m_sLocalCommunity;
+
+    CMOOSUDPLink m_UDPLink;
+    
+    std::set< CMOOSCommunity::SP > m_UDPShares;
 };
 
 #endif
