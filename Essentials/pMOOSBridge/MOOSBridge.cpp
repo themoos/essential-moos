@@ -158,7 +158,7 @@ bool Bridge::AddShare(ShareInfo SI)
 
 	//make two communities (which will be bridged)
 	CMOOSCommunity* pSrcCommunity = GetOrMakeCommunity(SI._SrcCommunity,SI._SrcCommunityHost);
-	CMOOSCommunity* pDestCommunity = GetOrMakeCommunity(SI._DestCommunity,SI._DestCommunityHost);
+	CMOOSCommunity* pDestCommunity = GetOrMakeCommunity(SI._DestCommunity,SI._DestCommunity);
 
 	if (!SI._UseUDP)
 	{
@@ -182,7 +182,8 @@ bool Bridge::AddShare(ShareInfo SI)
 	}
 	else
 	{
-		MOOSTrace("Setting UDP port for community %s as %s:%d\n",pDestCommunity->GetCommunityName().c_str(), SI._DestCommunityHost.c_str(),lDestPort);
+		// MOOSTrace("Setting UDP port for community %s as %s:%d\n",pDestCommunity->GetCommunityName().c_str(),
+		// dest_community_host.c_str(),lDestPort);
 		if (SI._DestCommunityHost.find("BROADCAST-") != std::string::npos
 				&& MOOSStrCmp(SI._DestCommunity, "ALL")) {
 			//this is special
@@ -368,22 +369,6 @@ bool Bridge::IsUDPShare(CMOOSCommunity::SP & Index)
     return !m_UDPShares.empty() && m_UDPShares.find(Index)!=m_UDPShares.end();
 }
 
-
-
-void Bridge::PrintShareInfo(const ShareInfo & SI)
-{
-	std::cout<<"SHARE INFO: "<<std::endl;
-	std::cout<<" _SrcCommunity: "<<SI._SrcCommunity<<std::endl;
-	std::cout<<" _SrcCommunityHost: "<<SI._SrcCommunityHost<<std::endl;
-	std::cout<<" _SrcCommunityPort: "<<SI._SrcCommunityPort<<std::endl;
-	std::cout<<" _SrcVarName: "<<SI._SrcVarName<<std::endl;
-	std::cout<<" _DestCommunity: "<<SI._DestCommunity<<std::endl;
-	std::cout<<" _DestCommunityHost: "<<SI._DestCommunityHost<<std::endl;
-	std::cout<<" _DestCommunityPort: "<<SI._DestCommunityPort<<std::endl;
-	std::cout<<" _DestVarName: "<<SI._DestVarName<<std::endl;
-}
-
-
 bool Bridge::Configure()
 {
     STRING_LIST sParams;
@@ -453,9 +438,8 @@ bool Bridge::Configure()
                 //tell user what we are doing - this is the short-hand set up...
                 MOOSTrace("Using abbreviated configuration protocol Source: %s@%s:%s\n",
                           sSrcCommunity.c_str(),
-                          sSrcCommunityHost.c_str(),
-                          sSrcCommunityPort.c_str()
-                          );
+                          sSrcCommunityPort.c_str(),
+                          sSrcCommunityHost.c_str());
                 
                 
                 MOOSChomp(sSrc,"[");
@@ -494,10 +478,6 @@ bool Bridge::Configure()
             	MOOSTrace("correct format is \n");
             	MOOSTrace("SHARE = COMMUNITYNAME@HOSTNAME:PORT [VAR1,VAR2,VAR3,....] -> COMMUNITYNAME@HOSTNAME:PORT\n");
             	continue;
-            }
-            else
-            {
-            	PrintShareInfo(SI);
             }
 
         }

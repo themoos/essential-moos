@@ -135,7 +135,6 @@ protected:
      */
     bool IsUDPShare(CMOOSCommunity::SP & Index);
     
-    void PrintShareInfo(const ShareInfo & SI);
 
 
     /**
