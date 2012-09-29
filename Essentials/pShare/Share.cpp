@@ -179,7 +179,9 @@ std::vector<std::string>  Share::Impl::GetRepeatedConfigurations(const std::stri
 	for(q=params.begin(); q!=params.end();q++)
 	{
 		std::string tok,val;
-		m_MissionReader.GetTokenValPair(*q,tok,val);
+
+		m_MissionReader.GetTokenValPair(*q,tok,val,false);
+
 		if(MOOSStrCmp(tok,token))
 		{
 			results.push_back(val);
@@ -202,7 +204,7 @@ bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_f
 	std::vector<std::string> outputs = cl.nominus_followers(2,"-o","--output");
 	for(unsigned int i = 0;i<outputs.size();i++)
 	{
-		std::cerr<<outputs[i]<<std::endl;
+		//std::cerr<<outputs[i]<<std::endl;
 		ProcessShortHandIOConfigurationString(outputs[i],true);
 	}
 
@@ -249,6 +251,7 @@ bool Share::Impl::OnStartUp()
 				q!=outputs.end();
 				q++)
 		{
+			std::cerr<<*q<<std::endl;
 			ProcessIOConfigurationString(*q,true);
 		}
 
@@ -445,6 +448,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 		{
 			MOOS::IPV4Address route_address(route);
 
+			std::cerr<<route_address.to_string()<<std::endl;
 			if(is_output)
 			{
 				if(!AddRoute(src_name,dest_name,route_address,false))
@@ -926,6 +930,9 @@ bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 		&reuse, sizeof(reuse)) == -1)
 	throw std::runtime_error("failed to set resuse socket option");
 
+	if (setsockopt(new_socket.socket_fd, SOL_SOCKET, SO_REUSEPORT,
+		&reuse, sizeof(reuse)) == -1)
+	throw std::runtime_error("failed to set resuse port option");
 
 	int send_buffer_size = 4 * 64 * 1024;
 	if (setsockopt(new_socket.socket_fd,
@@ -981,6 +988,7 @@ int Share::Run(int argc,char * argv[])
 	GetPot cl(argc,argv);
 
 	//mission file could be first parameter or after --config
+
 
 	std::string mission_file = cl.get(1,"Mission.moos");
 	if(mission_file.find("-")==0)
