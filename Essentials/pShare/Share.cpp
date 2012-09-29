@@ -251,8 +251,16 @@ bool Share::Impl::OnStartUp()
 				q!=outputs.end();
 				q++)
 		{
-			std::cerr<<*q<<std::endl;
-			ProcessIOConfigurationString(*q,true);
+			if(q->find("route")!=std::string::npos || q->find("Route")!=std::string::npos)
+			{
+				//this looks like a long hand configuration
+				ProcessIOConfigurationString(*q,true);
+			}
+			else
+			{
+				//this looks like shorthand..
+				ProcessShortHandIOConfigurationString(*q,true);
+			}
 		}
 
 		std::vector<std::string> inputs = GetRepeatedConfigurations("Input");
@@ -448,7 +456,6 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 		{
 			MOOS::IPV4Address route_address(route);
 
-			std::cerr<<route_address.to_string()<<std::endl;
 			if(is_output)
 			{
 				if(!AddRoute(src_name,dest_name,route_address,false))
