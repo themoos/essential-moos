@@ -702,22 +702,33 @@ bool Share::Impl::OnConnectToServer()
 
 bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 {
+	if(!Msg.IsYoungerThan(GetAppStartTime()))
+		return false;
+
 	std::string cmd;
 	MOOSValFromString(cmd,Msg.GetString(),"cmd");
 
-	if(MOOSStrCmp("output",cmd))
+	try
 	{
-		if(!ProcessIOConfigurationString(Msg.GetString(),true))
-			return false;
+		if(MOOSStrCmp("output",cmd))
+		{
+			if(!ProcessIOConfigurationString(Msg.GetString(),true))
+				return false;
 
-		PrintRoutes();
+			PrintRoutes();
+		}
+		else if(MOOSStrCmp("input",cmd))
+		{
+			if(!ProcessIOConfigurationString(Msg.GetString(),false))
+				return false;
+
+			PrintRoutes();
+		}
 	}
-	else if(MOOSStrCmp("input",cmd))
+	catch(const std::exception & e)
 	{
-		if(!ProcessIOConfigurationString(Msg.GetString(),false))
-			return false;
-
-		PrintRoutes();
+		std::cerr<<RED<<"oops failed to parse dynamic request:\n"
+				"    \""<<e.what()<<"\"\n"<<NORMAL;
 	}
 	return true;
 }
