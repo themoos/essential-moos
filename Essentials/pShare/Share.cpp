@@ -477,7 +477,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 bool Share::Impl::Iterate()
 {
-	if(incoming_queue_.Size()!=0)
+	while(incoming_queue_.Size()!=0)
 	{
 		CMOOSMsg new_msg;
 		if(incoming_queue_.Pull(new_msg))
