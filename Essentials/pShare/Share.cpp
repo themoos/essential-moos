@@ -245,6 +245,11 @@ bool Share::Impl::OnStartUp()
 		ProcessIOConfigurationString("src_name =X,dest_name=Z,route=161.4.5.6:9000&multicast_21&localhost:9832",true);
 		ProcessIOConfigurationString("route=multicast_21&localhost:9833&multicast_3",false);
 		*/
+		std::string multicast_base;
+		if(m_MissionReader.GetValue("multicast_base",multicast_base))
+		{
+			base_address_=IPV4Address(multicast_base);
+		}
 
 		std::vector<std::string> outputs = GetRepeatedConfigurations("Output");
 		for(std::vector<std::string>::iterator q=outputs.begin();
@@ -338,6 +343,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 				case 4:
 					//X:212.1.1.3:80453:multicast
 					dest_name = parts.front();parts.pop_front();
+					std::cerr<<RED<<"case 4";
 				case 3:
 					//212.1.1.3:80453:multicast
 					host_name = parts.front();parts.pop_front();
@@ -371,6 +377,12 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 
 
+			}
+			else
+			{
+				std::cerr<<RED<<"short hand failed to understand protocol name \""<<parts.back()
+							<<"\": expecting udp or multiast_n "
+							<< std::endl<<NORMAL;
 			}
 
 
