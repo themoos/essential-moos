@@ -86,7 +86,9 @@ protected:
 					const std::string & dest_name,
 					unsigned int channel_num);
 
-	MOOS::IPV4Address GetAddressFromChannelAlias(unsigned int channel_number);
+	MOOS::IPV4Address GetAddressFromChannelAlias(unsigned int channel_number) const;
+
+	std::string GetChannelAliasFromMutlicastAddress(const MOOS::IPV4Address & address) const;
 
 	void PrintRoutes();
 
@@ -776,7 +778,7 @@ void Share::Impl::PrintRoutes()
 			Route & route = *p;
 			std::cout<<"  --> "<<std::setw(20)<<route.dest_address.to_string()<<" as "<<std::setw(10)<<route.dest_name;
 			if(route.multicast)
-				std::cout<<" [multicast]";
+				std::cout<<" ["<<GetChannelAliasFromMutlicastAddress(route.dest_address)<<"]";
 			else
 				std::cout<<" [udp]";
 			std::cout<<std::endl;
@@ -806,7 +808,7 @@ void Share::Impl::PrintRoutes()
 			std::cout<<"  --> "<<std::setw(20)<<route.dest_address.to_string()
 					<<" as "<<std::setw(10)<<route.dest_name+"*";
 			if(route.multicast)
-				std::cout<<" [multicast]";
+				std::cout<<" ["<<GetChannelAliasFromMutlicastAddress(route.dest_address)<<"]";
 			else
 				std::cout<<" [udp]";
 			std::cout<<std::endl;
@@ -937,11 +939,25 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 
 }
 
-MOOS::IPV4Address Share::Impl::GetAddressFromChannelAlias(unsigned int channel_number)
+
+MOOS::IPV4Address Share::Impl::GetAddressFromChannelAlias(unsigned int channel_number) const
 {
 	MOOS::IPV4Address address = base_address_;
 	address.set_port(channel_number+address.port());
 	return address;
+}
+
+std::string Share::Impl::GetChannelAliasFromMutlicastAddress(const MOOS::IPV4Address & address) const
+{
+	std::stringstream ss;
+
+	int channel = address.port()-base_address_.port();
+	if(channel<0)
+		throw std::runtime_error("multicast address has port number below base port\n");
+
+	ss<<"multicast_"<<channel;
+
+	return ss.str();
 }
 
 
