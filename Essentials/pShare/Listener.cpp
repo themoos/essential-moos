@@ -51,9 +51,9 @@ bool Listener::ListenLoop()
 		if (setsockopt(socket_fd, SOL_SOCKET,SO_REUSEADDR/* SO_REUSEPORT*/, &reuse, sizeof(reuse)) == -1)
 			throw std::runtime_error("Listener::ListenLoop::setsockopt::reuse");
 
-		if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT,
+/*		if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT,
 			&reuse, sizeof(reuse)) == -1)
-		throw std::runtime_error("Listener::ListenLoop()::failed to set resuse port option");
+		throw std::runtime_error("Listener::ListenLoop()::failed to set resuse port option");*/
 
 
 		//give ourselves plenty of receive space

@@ -973,11 +973,11 @@ bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 	if (setsockopt(new_socket.socket_fd, SOL_SOCKET, SO_REUSEADDR,
 		&reuse, sizeof(reuse)) == -1)
 	throw std::runtime_error("failed to set resuse socket option");
-
+/*
 	if (setsockopt(new_socket.socket_fd, SOL_SOCKET, SO_REUSEPORT,
 		&reuse, sizeof(reuse)) == -1)
 	throw std::runtime_error("failed to set resuse port option");
-
+*/
 	int send_buffer_size = 4 * 64 * 1024;
 	if (setsockopt(new_socket.socket_fd,
 			SOL_SOCKET, SO_SNDBUF,
