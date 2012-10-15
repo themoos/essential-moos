@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <string>
+#include <cstring>
 #include <stdexcept>
 #include <iostream>
 #include "Listener.h"
