@@ -6,8 +6,6 @@
  */
 
 #include <iostream>
-#include <cstdlib>
-
 #include "MOOS/libMOOS/Utils/ConsoleColours.h"
 
 
