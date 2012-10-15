@@ -29,7 +29,6 @@
 #include "Route.h"
 #include "ShareHelp.h"
 
-
 #define DEFAULT_MULTICAST_GROUP_ADDRESS "224.1.1.11"
 #define DEFAULT_MULTICAST_GROUP_PORT 90000
 #define MAX_MULTICAST_CHANNELS 256
@@ -506,7 +505,6 @@ bool Share::Impl::Iterate()
 
 	LookForAndHandleUserInput();
 
-
 	PublishSharingStatus();
 	return true;
 }
@@ -521,6 +519,8 @@ void Share::Impl::LookForAndHandleUserInput()
 		case 'p':
 			PrintRoutes();
 			break;
+		case 'h':
+			ShareHelp::PrintInterfaceAndExit();
 		case 'q':
 		case 3: //control-C
 			exit(0);
@@ -540,7 +540,6 @@ bool Share::Impl::PublishSharingStatus()
 
 	std::stringstream sso;
 
-	//Output = X->Y:165.45.3.61:9000:udp & Z@165.45.3.61.2
 	RouteMap::iterator q;
 	for(q = routing_table_.begin();q!=routing_table_.end();q++)
 	{
@@ -959,7 +958,6 @@ std::string Share::Impl::GetChannelAliasFromMutlicastAddress(const MOOS::IPV4Add
 
 	return ss.str();
 }
-
 
 bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 {
