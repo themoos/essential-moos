@@ -4,7 +4,6 @@
  *  Created on: Aug 26, 2012
  *      Author: pnewman
  */
-
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -38,7 +37,6 @@
 #define GREEN MOOS::ConsoleColours::Green()
 #define YELLOW MOOS::ConsoleColours::Yellow()
 #define NORMAL MOOS::ConsoleColours::reset()
-
 
 namespace MOOS {
 
