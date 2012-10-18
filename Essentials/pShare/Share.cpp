@@ -496,7 +496,7 @@ bool Share::Impl::Iterate()
 			//new_msg.Trace();
 			if(!m_Comms.IsRegisteredFor(new_msg.GetKey()))
 			{
-				m_Comms.Post(new_msg);
+				m_Comms.Post(new_msg,true);
 			}
 		}
 	}
