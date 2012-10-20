@@ -22,6 +22,7 @@ public:
 	Route();
 	virtual ~Route();
 
+	bool operator==(const Route & r) const;
 	MOOS::IPV4Address dest_address;
 	std::string dest_name;
 	std::string src_name;

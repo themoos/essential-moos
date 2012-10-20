@@ -29,6 +29,14 @@ std::string Route::to_string() const
 	return ss.str();
 }
 
+bool Route::operator==(const Route & r) const
+{
+	return r.dest_address.port()==dest_address.port() &&
+			r.dest_address.host()==dest_address.host() &&
+		r.dest_name == dest_name &&
+		r.src_name==  src_name &&
+		r.multicast == multicast;
+}
 
 
 }

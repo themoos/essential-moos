@@ -661,11 +661,17 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		route.dest_address = address;
 		route.multicast = multicast;
 
-		//this is a regular share....
-		Register(trimed_src_name, 0.0);
+		std::list<Route> & rlist = routing_table_[trimed_src_name];
 
-		//add this to our routing table
-		routing_table_[trimed_src_name].push_back(route);
+		//check we have not already got this exact same route....
+		if(find(rlist.begin(), rlist.end(),route)==rlist.end())
+		{
+			//this is a regular share....
+			Register(trimed_src_name, 0.0);
+
+			//add this to our routing table
+			rlist.push_back(route);
+		}
 	}
 	else
 	{
@@ -681,11 +687,18 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		if(!trimed_src_name.empty())
 			app_pattern = trimed_src_name;
 
-		//do a wildcard registration
-		Register(var_pattern,app_pattern,0.0);
 
-		//add this to wildcard routing table
-		wildcard_routing_table_[std::make_pair(var_pattern,app_pattern)].push_back(route);
+		std::list<Route> & rlist = wildcard_routing_table_[std::make_pair(var_pattern,app_pattern)];
+
+		//check we have not already got this exact same route....
+		if(find(rlist.begin(), rlist.end(),route)==rlist.end())
+		{
+			//do a wildcard registration
+			Register(var_pattern,app_pattern,0.0);
+
+			//add this to wildcard routing table
+			rlist.push_back(route);
+		}
 	}
 
 	return true;
