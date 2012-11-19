@@ -88,7 +88,7 @@ protected:
     bool OnLoggerRestart();
     bool AddSyncLineOfTimes(double dfTimeNow=-1);
     bool LabelSyncColumns();
-    bool DoBanner(std::ostream & os,std::string & sFileName);
+    bool DoLogBanner(std::ostream & os,std::string & sFileName);
     bool IsSystemMessage(std::string & sKey);
     bool LogSystemMessages(MOOSMSG_LIST & NewMail);
     bool OpenAsyncFiles();

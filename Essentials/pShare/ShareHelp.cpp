@@ -25,7 +25,7 @@ ShareHelp::ShareHelp() {
 ShareHelp::~ShareHelp() {
 	// TODO Auto-generated destructor stub
 }
-void ShareHelp::PrintConfigurationExampleAndExit()
+void ShareHelp::PrintConfigurationExample()
 {
 	std::cout<<RED<<"\n--------------------------------------------\n";
 	std::cout<<RED<<"      \"pShare\" Example Configuration      \n";
@@ -53,10 +53,9 @@ void ShareHelp::PrintConfigurationExampleAndExit()
 			"  input = route = localhost:9069 & multicast_9 & multicast_65\n"
 			"}\n"<<std::endl;
 
-	exit(0);
 }
 
-void ShareHelp::PrintHelpAndExit()
+void ShareHelp::PrintHelp()
 {
 	std::cout<<RED<<"\n--------------------------------------------\n";
 	std::cout<<RED<<"      \"pShare\" Help                       \n";
@@ -65,11 +64,6 @@ void ShareHelp::PrintHelpAndExit()
 	std::cout<<YELLOW<<"\nGeneral Usage\n\n"<<NORMAL;
 	std::cout<<"pShare MissionFile [switches] \n\n"
 			"switches:\n"
-			"  --config MissionFile  : specify configuration file\n"
-			"  --alias MOOSName      : specify MOOS name\n"
-			"  -i                    : display interface help\n"
-			"  -e                    : display configuration help\n"
-			"  -h, --help            : display this help\n"
 			"  -o, (--output) outputs: specify outputs from command line\n"
 			"  -in, (--input) inputs : specify inputs from command line\n";
 
@@ -79,8 +73,8 @@ void ShareHelp::PrintHelpAndExit()
 	std::cout<<"a)   \"./pShare\"  (register under default name of pShare, no "
 			"configuration all sharing configured online)\n";
 	std::cout<<"b)   \"./pShare special.moos\" (register under default name of pShare)\n";
-	std::cout<<"c)   \"./pShare special.moos --alias pShare2\" (register under MOOSName of pShare2)\n";
-	std::cout<<"d)   \"./pShare --config special.moos --alias pShare2\" (register under MOOSName of pShare2)\n";
+	std::cout<<"c)   \"./pShare special.moos --moos_name=pShare2\" (register under MOOSName of pShare2)\n";
+	std::cout<<"d)   \"./pShare --moos_file=special.moos --moos_name=pShare2\" (register under MOOSName of pShare2)\n";
 
 	std::cout<<YELLOW<<"\nSpecifying shares from the command line:\n\n"<<NORMAL<<
 			" Outputs are specified as :\n\n"
@@ -124,13 +118,9 @@ void ShareHelp::PrintHelpAndExit()
 			"   ./pShare -o 'V*:GPS->shared_:localhost:8009:udp\n\n ";
 
 
-
-
-
-	exit(0);
 }
 
-void ShareHelp::PrintInterfaceAndExit()
+void ShareHelp::PrintInterface()
 {
 	std::cout<<RED<<"\n--------------------------------------------\n";
 	std::cout<<RED<<"      \"pShare\" Interface Description    \n";
@@ -182,6 +172,4 @@ void ShareHelp::PrintInterfaceAndExit()
 	std::cout<<"  \"input = localhost:9001:udp , 221.1.1.18:multicast_18\"\n";
 	std::cout<<"\n\n";
 
-
-	exit(0);
 }

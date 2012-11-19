@@ -804,7 +804,7 @@ bool CMOOSLogger::OpenSyncFile()
 
 
     //be pretty
-    DoBanner(m_SyncLogFile,m_sSyncFileName);
+    DoLogBanner(m_SyncLogFile,m_sSyncFileName);
 
 
     //put a column of names and where they can be found
@@ -856,7 +856,7 @@ bool CMOOSLogger::OpenSystemFile()
         return MOOSFail("Failed to Open system log file");
 
 
-    DoBanner(m_SystemLogFile,m_sSystemFileName);
+    DoLogBanner(m_SystemLogFile,m_sSystemFileName);
 
     return true;
 }
@@ -872,7 +872,7 @@ bool CMOOSLogger::OpenAsyncFiles()
 	{
 		//we need to write a banner to a compressed stream
 		std::stringstream ss;
-		DoBanner(ss,m_sAsyncFileName);
+		DoLogBanner(ss,m_sAsyncFileName);
 		m_AlogZipper.Push(ss.str());
 
 		if(m_bUseExcludedLog)
@@ -886,7 +886,7 @@ bool CMOOSLogger::OpenAsyncFiles()
 		if(!OpenFile(m_AsyncLogFile,m_sAsyncFileName))
 			return MOOSFail("Failed to Open alog file");
 
-		DoBanner(m_AsyncLogFile,m_sAsyncFileName);
+		DoLogBanner(m_AsyncLogFile,m_sAsyncFileName);
 		
 		if(m_bUseExcludedLog)
 		{
@@ -953,7 +953,7 @@ bool CMOOSLogger::IsSystemMessage(string &sKey)
     return false;
 }
 
-bool CMOOSLogger::DoBanner(ostream &os, string &sFileName)
+bool CMOOSLogger::DoLogBanner(ostream &os, string &sFileName)
 {
     os<<"%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n";
     os<<"%% LOG FILE:       "<<sFileName.c_str()<<endl;
@@ -1338,7 +1338,7 @@ bool CMOOSLogger::CopyMissionFile()
         return MOOSFail("Failed to open a destination copy of mission file");
 
     //write a banner
-    DoBanner(MissionCopy,m_sMissionCopyName);
+    DoLogBanner(MissionCopy,m_sMissionCopyName);
 
     //do the copy..
     while(!MissionFile.eof())

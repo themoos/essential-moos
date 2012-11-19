@@ -54,6 +54,9 @@ public:
 	bool Iterate();
 	bool OnConnectToServer();
 	bool OnCommandMsg(CMOOSMsg  Msg);
+	void OnPrintHelpAndExit();
+	void OnPrintInterfaceAndExit();
+
 	bool Run(const std::string & moos_name, const::std::string & moos_file, int argc, char * argv[]);
 
 protected:
@@ -214,23 +217,20 @@ bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_f
 		ProcessShortHandIOConfigurationString(inputs[i],false);
 	}
 
-
-
-	return BASE::Run(moos_name.c_str(),moos_file.c_str());
+	SetCommandLineParameters(argc,argv);
+	return BASE::Run(moos_name,moos_file);
 }
 
 
 bool Share::Impl::OnStartUp()
 {
-
+	//return true;
 	EnableCommandMessageFiltering(true);
 
 	keyboard_capture_.Start();
 
-
 	try
 	{
-
 /*
 		AddRoute("  X   ","X",MOOS::IPV4Address("127.0.0.1",9010),false);
 		AddRoute("X","sadfsadf",MOOS::IPV4Address("127.0.0.1",9011),false);
@@ -488,6 +488,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 bool Share::Impl::Iterate()
 {
+	std::cerr<<"Iterate";
 	while(incoming_queue_.Size()!=0)
 	{
 		CMOOSMsg new_msg;
@@ -512,13 +513,14 @@ void Share::Impl::LookForAndHandleUserInput()
 	char user_input;
 	if(keyboard_capture_.GetKeyboardInput(user_input))
 	{
+		std::cerr<<"Ok "<<user_input;
 		switch(user_input)
 		{
 		case 'p':
 			PrintRoutes();
 			break;
 		case 'h':
-			ShareHelp::PrintInterfaceAndExit();
+			ShareHelp::PrintInterface();
 		case 'q':
 		case 3: //control-C
 			exit(0);
@@ -723,6 +725,20 @@ bool Share::Impl::OnConnectToServer()
 
 	return true;
 }
+
+
+void Share::Impl::OnPrintHelpAndExit()
+{
+	ShareHelp::PrintHelp();
+	exit(0);
+}
+
+void Share::Impl::OnPrintInterfaceAndExit()
+{
+	ShareHelp::PrintInterface();
+	exit(0);
+}
+
 
 bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 {
@@ -1039,35 +1055,17 @@ int Share::Run(int argc,char * argv[])
 {
 
 	//here we do some command line parsing...
-
 	GetPot cl(argc,argv);
 
+	std::vector<std::string>  nominus = cl.nominus_vector();
+
 	//mission file could be first parameter or after --config
-
-
-	std::string mission_file = cl.get(1,"Mission.moos");
-	if(mission_file.find("-")==0)
-	{
-		//looks like an option...
-		mission_file = cl("--config", "Mission.moos");
-
-	}
-
-	//alias could be  parameter or after --alias or after --moos_name
-	std::string moos_name = cl.follow("pShare",2,"--alias","--moos_name","-a");
-
-	if(cl.search("-i"))
-		ShareHelp::PrintInterfaceAndExit();
-
-	if(cl.search(2,"-h","--help"))
-		ShareHelp::PrintHelpAndExit();
-
-	if(cl.search(2,"-e","--example"))
-		ShareHelp::PrintConfigurationExampleAndExit();
+	std::string mission_file = nominus.size()>0 ? nominus[0] : "Mission.moos";
+	std::string app_name = nominus.size()>1 ? nominus[1] : "pShare";
 
 	try
 	{
-		_Impl->Run(moos_name.c_str(),mission_file.c_str(),argc,argv);
+		_Impl->Run(app_name,mission_file,argc,argv);
 	}
 	catch(const std::exception & e)
 	{

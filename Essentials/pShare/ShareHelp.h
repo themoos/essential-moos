@@ -15,9 +15,9 @@ class ShareHelp {
 public:
 	ShareHelp();
 	virtual ~ShareHelp();
-	static void PrintHelpAndExit();
-	static void PrintInterfaceAndExit();
-	static void PrintConfigurationExampleAndExit();
+	static void PrintHelp();
+	static void PrintInterface();
+	static void PrintConfigurationExample();
 };
 
 #endif /* SHAREHELP_H_ */

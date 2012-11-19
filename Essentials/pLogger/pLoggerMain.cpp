@@ -29,6 +29,7 @@
 //////////////////////////    END_GPL    //////////////////////////////////
 
 #include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Thirdparty/getpot/getpot.h"
 #include "MOOSLogger.h"
 
 #include <signal.h>
@@ -53,16 +54,15 @@ void CatchMeBeforeDeath(int sig)
 int main(int argc ,char * argv[])
 {
 
-    
-    const char * sMissionFile = "Mission.moos";
-    const char * sMOOSName = "pLogger";
-    switch(argc)
-    {
-    case 3:
-        sMOOSName = argv[2];
-    case 2:
-        sMissionFile = argv[1];
-    }
+
+	//here we do some command line parsing...
+	GetPot cl(argc,argv);
+
+	std::vector<std::string>  nominus = cl.nominus_vector();
+
+	//mission file could be first parameter or after --config
+	std::string mission_file = nominus.size()>0 ? nominus[0] : "Mission.moos";
+	std::string app_name = nominus.size()>1 ? nominus[1] : "pShare";
 
 
     //set up some control handling
@@ -80,7 +80,7 @@ int main(int argc ,char * argv[])
 
   
     //GO!
-    gLogger.Run(sMOOSName,sMissionFile);
+    gLogger.Run(app_name,mission_file,argc,argv);
 
     return 0;
 }
