@@ -49,11 +49,8 @@ void CatchMeBeforeDeath(int sig)
 }
 
 
-
-
 int main(int argc ,char * argv[])
 {
-
 
 	//here we do some command line parsing...
 	GetPot cl(argc,argv);
@@ -62,8 +59,7 @@ int main(int argc ,char * argv[])
 
 	//mission file could be first parameter or after --config
 	std::string mission_file = nominus.size()>0 ? nominus[0] : "Mission.moos";
-	std::string app_name = nominus.size()>1 ? nominus[1] : "pShare";
-
+	std::string app_name = nominus.size()>1 ? nominus[1] : "pLogger";
 
     //set up some control handling
 #ifndef _WIN32
