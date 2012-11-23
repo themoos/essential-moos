@@ -36,24 +36,24 @@
 
 
 #include "MOOS/libMOOS/MOOSLib.h"
+#include "MOOS/libMOOS/Utils/CommandLineParser.h"
 
 
 #include "MOOSScheduler.h"
 
 int main(int argc ,char * argv[])
 {
-    const char * sMissionFile = "Mission.moos";
 
-    if(argc>1)
-    {
-        sMissionFile = argv[1];
-    }
+    //here we do some command line parsing...
+	MOOS::CommandLineParser P(argc,argv);
+	//mission file could be first free parameter
+	std::string mission_file = P.GetFreeParameter(0, "Mission.moos");
+	//mission name can be the  second free parameter
+	std::string app_name = P.GetFreeParameter(1, "pScheduler");
 
-
-    CMOOSScheduler TheScheduler;
-
-    //run the Scheduler...
-    TheScheduler.Run("pScheduler",sMissionFile);
+    //GO!
+	CMOOSScheduler TheScheduler;
+	TheScheduler.Run(app_name,mission_file,argc,argv);
 
     return 0;
 }

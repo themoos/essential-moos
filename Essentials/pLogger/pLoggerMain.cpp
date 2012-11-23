@@ -29,7 +29,7 @@
 //////////////////////////    END_GPL    //////////////////////////////////
 
 #include "MOOS/libMOOS/MOOSLib.h"
-#include "MOOS/libMOOS/Thirdparty/getpot/getpot.h"
+#include "MOOS/libMOOS/Utils/CommandLineParser.h"
 #include "MOOSLogger.h"
 
 #include <signal.h>
@@ -44,22 +44,18 @@ void CatchMeBeforeDeath(int sig)
   
 	gLogger.ShutDown();
     exit(0);
-	
-  
-}
 
+}
 
 int main(int argc ,char * argv[])
 {
 
 	//here we do some command line parsing...
-	GetPot cl(argc,argv);
-
-	std::vector<std::string>  nominus = cl.nominus_vector();
-
-	//mission file could be first parameter or after --config
-	std::string mission_file = nominus.size()>0 ? nominus[0] : "Mission.moos";
-	std::string app_name = nominus.size()>1 ? nominus[1] : "pLogger";
+	MOOS::CommandLineParser P(argc,argv);
+	//mission file could be first free parameter
+	std::string mission_file = P.GetFreeParameter(0, "Mission.moos");
+	//mission name can be the  second free parameter
+	std::string app_name = P.GetFreeParameter(1, "pLogger");
 
     //set up some control handling
 #ifndef _WIN32

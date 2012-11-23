@@ -1053,14 +1053,13 @@ bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 int Share::Run(int argc,char * argv[])
 {
 
-	//here we do some command line parsing...
-	GetPot cl(argc,argv);
+    //here we do some command line parsing...
+	MOOS::CommandLineParser P(argc,argv);
+	//mission file could be first free parameter
+	std::string mission_file = P.GetFreeParameter(0, "Mission.moos");
+	//mission name can be the  second free parameter
+	std::string app_name = P.GetFreeParameter(1, "pShare");
 
-	std::vector<std::string>  nominus = cl.nominus_vector();
-
-	//mission file could be first parameter or after --config
-	std::string mission_file = nominus.size()>0 ? nominus[0] : "Mission.moos";
-	std::string app_name = nominus.size()>1 ? nominus[1] : "pShare";
 
 	try
 	{
