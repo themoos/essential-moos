@@ -136,6 +136,7 @@ CMOOSLogger::~CMOOSLogger()
 
 bool CMOOSLogger::ShutDown()
 {
+	m_Comms.Close();
 	return CloseFiles();
 }
 
@@ -1267,6 +1268,7 @@ bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
 						sEntry<<(rMsg.IsDouble() ? "D:" : "S:");
 
 					sEntry<<rMsg.GetAsString(12,m_nDoublePrecision)<<' ';
+
 				}
 				else if(rMsg.IsDataType(MOOS_BINARY_STRING))
 				{
