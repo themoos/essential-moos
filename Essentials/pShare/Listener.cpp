@@ -4,6 +4,10 @@
  *  Created on: Aug 27, 2012
  *      Author: pnewman
  */
+#ifndef _WIN32
+#include "unistd.h"
+#endif
+
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -12,7 +16,6 @@
 #include <stdexcept>
 #include <iostream>
 #include "Listener.h"
-
 
 
 namespace MOOS {
