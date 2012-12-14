@@ -54,10 +54,10 @@ public:
 	bool Iterate();
 	bool OnConnectToServer();
 	bool OnCommandMsg(CMOOSMsg  Msg);
+	bool OnProcessCommandLine();
 	void OnPrintHelpAndExit();
 	void OnPrintInterfaceAndExit();
 
-	bool Run(const std::string & moos_name, const::std::string & moos_file, int argc, char * argv[]);
 
 protected:
 
@@ -95,6 +95,8 @@ protected:
 	void LookForAndHandleUserInput();
 
 	bool PrintSocketMap();
+
+	bool DoRegistrations();
 
 private:
 	typedef CMOOSApp BASE;
@@ -192,34 +194,39 @@ std::vector<std::string>  Share::Impl::GetRepeatedConfigurations(const std::stri
 	return results;
 }
 
-
-bool Share::Impl::Run(const std::string & moos_name, const::std::string & moos_file, int argc, char * argv[])
+bool Share::Impl::OnProcessCommandLine()
 {
-
 	base_address_.set_host  (DEFAULT_MULTICAST_GROUP_ADDRESS);
 	base_address_.set_port (DEFAULT_MULTICAST_GROUP_PORT);
 
-	//here we can add some routes specified on command line...
-	//  "./pShare --output 'X->Y multicast_8 multicast_7' 'Z->Q localhost:9000'"
-	GetPot cl(argc,argv);
-
-	std::vector<std::string> outputs = cl.nominus_followers(2,"-o","--output");
-	for(unsigned int i = 0;i<outputs.size();i++)
+	std::string sVar;
+	if(m_CommandLineParser.GetVariable("-o",sVar))
 	{
-		//std::cerr<<outputs[i]<<std::endl;
-		ProcessShortHandIOConfigurationString(outputs[i],true);
+		std::vector<std::string> outputs = MOOS::StringListToVector(sVar);
+
+		for(unsigned int i = 0;i<outputs.size();i++)
+		{
+			ProcessShortHandIOConfigurationString(outputs[i],true);
+		}
 	}
 
-	std::vector<std::string> inputs = cl.nominus_followers(2,"-in","--input");
-	for(unsigned int i = 0;i<inputs.size();i++)
+	if(m_CommandLineParser.GetVariable("-i",sVar))
 	{
-		std::cerr<<inputs[i]<<std::endl;
-		ProcessShortHandIOConfigurationString(inputs[i],false);
+		std::vector<std::string> inputs = MOOS::StringListToVector(sVar);
+
+		for(unsigned int i = 0;i<inputs.size();i++)
+		{
+			ProcessShortHandIOConfigurationString(inputs[i],false);
+		}
 	}
 
-	SetCommandLineParameters(argc,argv);
-	return BASE::Run(moos_name,moos_file);
+
+	DoRegistrations();
+
+	return true;
 }
+
+
 
 
 bool Share::Impl::OnStartUp()
@@ -282,6 +289,10 @@ bool Share::Impl::OnStartUp()
 	{
 		std::cerr<<RED<<"OnStartUp::exception "<<e.what()<<NORMAL<< std::endl;
 	}
+
+
+	DoRegistrations();
+
 
 	return true;
 }
@@ -705,13 +716,13 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 	return true;
 }
 
-
-bool Share::Impl::OnConnectToServer()
+bool Share::Impl::DoRegistrations()
 {
 	RouteMap::iterator q;
 
 	for(q=routing_table_.begin();q!=routing_table_.end();q++)
 	{
+		//std::cerr<<"registering "<<q->first<<std::endl;
 		Register(q->first, 0.0);
 	}
 
@@ -723,6 +734,11 @@ bool Share::Impl::OnConnectToServer()
 	}
 
 	return true;
+}
+
+bool Share::Impl::OnConnectToServer()
+{
+	return DoRegistrations();
 }
 
 
