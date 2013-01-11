@@ -204,8 +204,10 @@ bool Share::Impl::OnProcessCommandLine()
 	{
 		std::vector<std::string> outputs = MOOS::StringListToVector(sVar);
 
+
 		for(unsigned int i = 0;i<outputs.size();i++)
 		{
+			std::cerr<<outputs[i]<<"\n";
 			ProcessShortHandIOConfigurationString(outputs[i],true);
 		}
 	}
@@ -596,8 +598,8 @@ bool Share::Impl::PublishSharingStatus()
 
 	last_time = MOOS::Time();
 
-	Notify(GetAppName()+"_OUTPUT_SUMMARY",sso.str());
-	Notify(GetAppName()+"_INPUT_SUMMARY",ssi.str());
+	Notify("PSHARE_OUTPUT_SUMMARY",sso.str());
+	Notify("PSHARE_INPUT_SUMMARY",ssi.str());
 
 	//std::cerr<<sso.str()<<std::endl;
 	//std::cerr<<ssi.str()<<std::endl;
