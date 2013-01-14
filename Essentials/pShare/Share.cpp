@@ -393,7 +393,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 			else
 			{
 				std::cerr<<RED<<"short hand failed to understand protocol name \""<<parts.back()
-							<<"\": expecting udp or multiast_n "
+							<<"\": expecting udp or multicast_n "
 							<< std::endl<<NORMAL;
 			}
 
