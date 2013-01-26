@@ -119,8 +119,6 @@ private:
 	//teh address form which we count
 	MOOS::IPV4Address base_address_;
 
-	//something to let us spot user interaction
-	KeyboardCapture keyboard_capture_;
 
 };
 
@@ -207,7 +205,6 @@ bool Share::Impl::OnProcessCommandLine()
 
 		for(unsigned int i = 0;i<outputs.size();i++)
 		{
-			std::cerr<<outputs[i]<<"\n";
 			ProcessShortHandIOConfigurationString(outputs[i],true);
 		}
 	}
@@ -235,8 +232,6 @@ bool Share::Impl::OnStartUp()
 {
 	//return true;
 	EnableCommandMessageFiltering(true);
-
-	keyboard_capture_.Start();
 
 	try
 	{
@@ -301,6 +296,10 @@ bool Share::Impl::OnStartUp()
 
 bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuration_string, bool is_output)
 {
+
+//	std::cout<<"ProcessShortHandIOConfigurationString...\n";
+
+
 	std::string copy_config = configuration_string;
 
 	if(is_output)
@@ -355,7 +354,6 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 				case 4:
 					//X:212.1.1.3:80453:multicast
 					dest_name = parts.front();parts.pop_front();
-					std::cerr<<RED<<"case 4";
 				case 3:
 					//212.1.1.3:80453:multicast
 					host_name = parts.front();parts.pop_front();
@@ -428,6 +426,9 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string, bool is_output )
 {
+//	std::cout<<"ProcessShortHandIOConfigurationString...\n";
+
+
 	std::string src_name, dest_name, routes;
 
 	MOOSRemoveChars(configuration_string, " ");
@@ -514,35 +515,10 @@ bool Share::Impl::Iterate()
 		}
 	}
 
-	LookForAndHandleUserInput();
-
 	PublishSharingStatus();
 	return true;
 }
 
-void Share::Impl::LookForAndHandleUserInput()
-{
-	char user_input;
-	if(keyboard_capture_.GetKeyboardInput(user_input))
-	{
-		std::cerr<<"Ok "<<user_input;
-		switch(user_input)
-		{
-		case 'p':
-			PrintRoutes();
-			break;
-		case 'h':
-			ShareHelp::PrintInterface();
-		case 'q':
-		case 3: //control-C
-			exit(0);
-		default:
-			std::cout<<RED<<"Unknown user command \""<<user_input<<"\"\n";
-			break;
-		}
-	}
-
-}
 
 bool Share::Impl::PublishSharingStatus()
 {
@@ -601,8 +577,6 @@ bool Share::Impl::PublishSharingStatus()
 	Notify("PSHARE_OUTPUT_SUMMARY",sso.str());
 	Notify("PSHARE_INPUT_SUMMARY",ssi.str());
 
-	//std::cerr<<sso.str()<<std::endl;
-	//std::cerr<<ssi.str()<<std::endl;
 
 	return true;
 }
@@ -724,7 +698,6 @@ bool Share::Impl::DoRegistrations()
 
 	for(q=routing_table_.begin();q!=routing_table_.end();q++)
 	{
-		//std::cerr<<"registering "<<q->first<<std::endl;
 		Register(q->first, 0.0);
 	}
 
@@ -793,10 +766,10 @@ bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 bool Share::Impl::PrintSocketMap()
 {
 	SocketMap::iterator q;
-	std::cerr<<"socket_map_:\n";
+	std::cout<<"socket_map_:\n";
 	for(q = socket_map_.begin();q!=socket_map_.end();q++)
 	{
-		std::cerr<<" "<<q->first.to_string() <<" -> "<<q->second.socket_fd<<std::endl;
+		std::cout<<" "<<q->first.to_string() <<" -> "<<q->second.socket_fd<<std::endl;
 	}
 	return true;
 }
@@ -915,7 +888,7 @@ bool Share::Impl::ApplyWildcardRoutes( CMOOSMsg& msg)
 				Route new_route = route;
 				new_route.dest_name+=msg.GetKey();
 				new_route.src_name = msg.GetKey();
-				std::cerr<<"dynamically creating route for "<<msg.GetKey()<<std::endl;
+				std::cout<<"dynamically creating route for "<<msg.GetKey()<<std::endl;
 				routing_table_[msg.GetKey()].push_back(new_route);
 				ApplyRoutes(msg);
 			}
