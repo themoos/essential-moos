@@ -248,6 +248,8 @@ bool Share::Impl::OnStartUp()
 		ProcessIOConfigurationString("src_name =X,dest_name=Z,route=161.4.5.6:9000&multicast_21&localhost:9832",true);
 		ProcessIOConfigurationString("route=multicast_21&localhost:9833&multicast_3",false);
 		*/
+
+
 		std::string multicast_base;
 		if(m_MissionReader.GetValue("multicast_base",multicast_base))
 		{
@@ -304,7 +306,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 	if(is_output)
 	{
-		//X->Y:165.45.3.61:9000:udp & Z:multicast_8
+		//X->Y:165.45.3.61:9000 & Z:multicast_8
 		std::string src_name = MOOS::Chomp(configuration_string,"->");
 		while(!configuration_string.empty())
 		{
@@ -318,9 +320,19 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 			std::string dest_name = src_name;
 
-			if(parts.back().find("udp")==0)
+
+
+			if(parts.back().find("multicast_")!=0)
 			{
-				if(parts.size()==4)
+
+				if(parts.size()>3)
+				{
+					std::cerr<<RED<<"short hand failed to parse "<<copy_config
+									<<" too many parts to the route\n";
+					return false;
+				}
+
+				if(parts.size()==3)
 				{
 					dest_name = parts.front();parts.pop_front();
 				}
@@ -344,22 +356,20 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 
 			}
-			else if(parts.back().find("multicast")==0)
+			else
 			{
-				std::string host_name;
-				std::string host_port;
+
+				if(parts.size()>2)
+				{
+					std::cerr<<RED<<"short hand failed to parse "<<copy_config
+									<<" too many parts to the route\n";
+					return false;
+				}
+
+				//this is a multicast route
 				std::string multicast_channel;
 				switch(parts.size())
 				{
-				case 4:
-					//X:212.1.1.3:80453:multicast
-					dest_name = parts.front();parts.pop_front();
-				case 3:
-					//212.1.1.3:80453:multicast
-					host_name = parts.front();parts.pop_front();
-					host_port = parts.front();parts.pop_front();
-					multicast_channel = host_name+":"+host_port;
-					break;
 				case 2:
 					//X:multicast_8
 					dest_name = parts.front();parts.pop_front();
@@ -388,12 +398,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 
 			}
-			else
-			{
-				std::cerr<<RED<<"short hand failed to understand protocol name \""<<parts.back()
-							<<"\": expecting udp or multicast_n "
-							<< std::endl<<NORMAL;
-			}
+
 
 
 		}
@@ -548,7 +553,7 @@ bool Share::Impl::PublishSharingStatus()
 			}
 			else
 			{
-				sso<<":udp";
+				//sso<<":udp";
 			}
 		}
 	}
@@ -567,7 +572,7 @@ bool Share::Impl::PublishSharingStatus()
 		}
 		else
 		{
-			ssi<<":udp";
+			//ssi<<":udp";
 		}
 	}
 
@@ -663,8 +668,13 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 	}
 	else
 	{
-
+		//this is a wildcard route
 		Route route;
+		if(trimed_dest_name.find_last_of("*?")!=std::string::npos)
+		{
+			//looks like we have no desire to rename
+			trimed_dest_name = "";
+		}
 		route.dest_name = trimed_dest_name;
 		route.dest_address = address;
 		route.multicast = multicast;
@@ -740,6 +750,7 @@ bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 
 	try
 	{
+
 		if(MOOSStrCmp("output",cmd))
 		{
 			if(!ProcessIOConfigurationString(Msg.GetString(),true))
@@ -822,7 +833,7 @@ void Share::Impl::PrintRoutes()
 		{
 			Route & route = *p;
 			std::cout<<"  --> "<<std::setw(20)<<route.dest_address.to_string()
-					<<" as "<<std::setw(10)<<route.dest_name+"*";
+					<<" as "<<std::setw(10)<<route.dest_name+"<src_name>";
 			if(route.multicast)
 				std::cout<<" ["<<GetChannelAliasFromMutlicastAddress(route.dest_address)<<"]";
 			else
