@@ -64,8 +64,8 @@ void ShareHelp::PrintHelp()
 	std::cout<<YELLOW<<"\nGeneral Usage\n\n"<<NORMAL;
 	std::cout<<"pShare MissionFile [switches] \n\n"
 			"switches:\n"
-			"  -o, (--output) outputs: specify outputs from command line\n"
-			"  -i, (--input) inputs : specify inputs from command line\n";
+			"  -o=<outputs>: specify outputs from command line\n"
+			"  -i=<inputs> : specify inputs from command line\n";
 
 
 	std::cout<<YELLOW<<"\nExamples:\n\n"<<NORMAL;
@@ -146,10 +146,9 @@ void ShareHelp::PrintInterface()
 	std::cout<<YELLOW<<"PSHARE_CMD\n"<<NORMAL;
 	std::cout<<"This variable can be used to dynamically configure sharing at run time\n"
 			"It has the following format:\n";
-	std::cout<<"     cmd=<IO directive>\n";
-	std::cout<<"where directive is something like \n";
-	std::cout<<"     Output = X->Y:165.45.3.61:9000\n";
-	std::cout<<"and more examples are given below\n\n";
+	std::cout<<"     cmd=<IO directive>,<details>\n";
+	std::cout<<"where directive is either \"output\" or \"input\" for example \n";
+	std::cout<<"     cmd = output,src_name = P,dest_name = H,route=multicast_9 \n";
 
 
 

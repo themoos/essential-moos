@@ -765,6 +765,10 @@ bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 
 			PrintRoutes();
 		}
+		else
+		{
+			throw std::runtime_error("cmd=X - X was neither \"output\" or \"input\"");
+		}
 	}
 	catch(const std::exception & e)
 	{
