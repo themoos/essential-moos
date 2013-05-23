@@ -438,46 +438,51 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 	MOOSRemoveChars(configuration_string, " ");
 
-	if(is_output)
-	{
-		if(!MOOSValFromString(src_name,configuration_string,"src_name"))
-			throw std::runtime_error("ProcessIOConfigurationString \"src_name\" is a required field");
+	if (is_output) {
+		if (!MOOSValFromString(src_name, configuration_string, "src_name"))
+			throw std::runtime_error(
+					"ProcessIOConfigurationString \"src_name\" is a required field");
 
 		//default no change in name
 		dest_name = src_name;
-		MOOSValFromString(dest_name,configuration_string,"dest_name");
+		MOOSValFromString(dest_name, configuration_string, "dest_name");
 	}
 
 	//we do need a route....
-	if(!MOOSValFromString(routes,configuration_string,"route"))
-		throw std::runtime_error("ProcessIOConfigurationString \"route\" is a required field");
+	if (!MOOSValFromString(routes, configuration_string, "route"))
+		throw std::runtime_error(
+				"ProcessIOConfigurationString \"route\" is a required field");
 
+	//are we being asked to delete the route?
+	//bDelete=false;
+	//MOOSValFromString(bDelete,configuration_string,"delete");
 
-	while(!routes.empty())
-	{
+	while (!routes.empty()) {
 		//look for a space separated list of routes...
-		std::string route = MOOSChomp(routes,"&");
+		std::string route = MOOSChomp(routes, "&");
 
-		if(route.find("multicast_")==0)
+		if (route.find("multicast_") == 0)
 		{
 			//is this a special multicast one?
-			std::stringstream ss(std::string(route,10));
-			unsigned int channel_num=0;
-			ss>>channel_num;
-			if(!ss)
-			{
-				std::cerr<<RED<<"cannot parse "<<route<<channel_num<<std::endl;
+			std::stringstream ss(std::string(route, 10));
+			unsigned int channel_num = 0;
+			ss >> channel_num;
+			if (!ss) {
+				std::cerr << RED << "cannot parse " << route << channel_num
+						<< std::endl;
 				continue;
 			}
 
-			if(is_output)
+			if (is_output)
 			{
-				if(!AddMulticastAliasRoute(src_name,dest_name,channel_num))
+				if (!AddMulticastAliasRoute(src_name, dest_name,
+						channel_num))
 					return false;
 			}
 			else
 			{
-				if(!AddInputRoute(GetAddressFromChannelAlias(channel_num),true))
+				if (!AddInputRoute(GetAddressFromChannelAlias(channel_num),
+						true))
 					return false;
 			}
 
@@ -486,14 +491,14 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 		{
 			MOOS::IPV4Address route_address(route);
 
-			if(is_output)
+			if (is_output)
 			{
-				if(!AddRoute(src_name,dest_name,route_address,false))
+				if (!AddRoute(src_name, dest_name, route_address, false))
 					return false;
 			}
 			else
 			{
-				if(!AddInputRoute(route_address,false))
+				if (!AddInputRoute(route_address, false))
 				{
 					return false;
 				}
@@ -503,6 +508,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 	}
 
 	return true;
+
 }
 
 bool Share::Impl::Iterate()
@@ -767,7 +773,7 @@ bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 		}
 		else
 		{
-			throw std::runtime_error("cmd=X - X was neither \"output\" or \"input\"");
+			throw std::runtime_error("cmd=X - X was neither \"output\" or \"input\"\n");
 		}
 	}
 	catch(const std::exception & e)
