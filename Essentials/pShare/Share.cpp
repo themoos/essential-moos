@@ -840,7 +840,7 @@ void Share::Impl::PrintRoutes()
 					<<" as ";
 
 			if(std::count(var_pattern.begin(), var_pattern.end(), '*')==1 &&
-									route.dest_name=="$")
+									route.dest_name=="^")
 			{
 				std::cout<<std::setw(10)<<" <-wildcard-match-> ";
 			}
@@ -915,10 +915,10 @@ bool Share::Impl::ApplyWildcardRoutes( CMOOSMsg& msg)
 				new_route.src_name = msg.GetKey();
 
 				if(std::count(var_pattern.begin(), var_pattern.end(), '*')==1 &&
-						route.dest_name=="$")
+						route.dest_name=="^")
 				{
 					//here we check for a special case if we are presented with a pattern
-					//like *_X->* we will simply forward as the bit that matched * in *_X
+					//like *_X->^ we will simply forward as the bit that matched * in *_X
 					//so concretely A_X will be forwarded as X
 
 					std::string t = msg.m_sKey;
