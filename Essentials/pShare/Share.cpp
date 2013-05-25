@@ -394,13 +394,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 							<<copy_config<<" \n"
 							<<io<<" \n"<<e.what()<<std::endl<<NORMAL;
 				}
-
-
-
 			}
-
-
-
 		}
 	}
 	else
@@ -843,7 +837,17 @@ void Share::Impl::PrintRoutes()
 		{
 			Route & route = *p;
 			std::cout<<"  --> "<<std::setw(20)<<route.dest_address.to_string()
-					<<" as "<<std::setw(10)<<route.dest_name+"<src_name>";
+					<<" as ";
+
+			if(std::count(var_pattern.begin(), var_pattern.end(), '*')==1 &&
+									route.dest_name=="$")
+			{
+				std::cout<<std::setw(10)<<" <-wildcard-match-> ";
+			}
+			else
+			{
+				std::cout<<std::setw(10)<<route.dest_name+"<src_name>";
+			}
 			if(route.multicast)
 				std::cout<<" ["<<GetChannelAliasFromMutlicastAddress(route.dest_address)<<"]";
 			else
@@ -906,10 +910,52 @@ bool Share::Impl::ApplyWildcardRoutes( CMOOSMsg& msg)
 					msg.GetKey(),
 					msg.GetSource()))
 			{
+
 				Route new_route = route;
-				new_route.dest_name+=msg.GetKey();
 				new_route.src_name = msg.GetKey();
-				std::cout<<"dynamically creating route for "<<msg.GetKey()<<std::endl;
+
+				if(std::count(var_pattern.begin(), var_pattern.end(), '*')==1 &&
+						route.dest_name=="$")
+				{
+					//here we check for a special case if we are presented with a pattern
+					//like *_X->* we will simply forward as the bit that matched * in *_X
+					//so concretely A_X will be forwarded as X
+
+					std::string t = msg.m_sKey;
+					std::string bit_that_matches;
+					if(*var_pattern.begin()=='*')
+					{
+						//we have *X
+						std::string tok = var_pattern.substr(1);
+						//we want everything before tok as that matched the wild card...
+						bit_that_matches = MOOS::Chomp(t,tok);
+					}
+					else if(*var_pattern.rbegin()=='*')
+					{
+						//we have X*
+						std::string tok = var_pattern.substr(0,var_pattern.length()-1);
+						//we want everything after tok as that matches the wild card...
+						MOOS::Chomp(t,tok);
+						bit_that_matches = t;
+					}
+					new_route.dest_name = bit_that_matches;
+				}
+				else
+				{
+					//standard thing to do is simply use message name as a suffix
+					new_route.dest_name+=msg.GetKey();
+				}
+
+				std::cout<<"dynamically creating outgoing route : "<<msg.GetKey()<<"->"<<new_route.dest_name <<" on ";
+				if(new_route.multicast)
+				{
+					std::cout<< GetChannelAliasFromMutlicastAddress(new_route.dest_address)<<"\n";
+				}
+				else
+				{
+					std::cout<<new_route.dest_address.to_string()<<"\n";
+				}
+
 				routing_table_[msg.GetKey()].push_back(new_route);
 				ApplyRoutes(msg);
 			}
