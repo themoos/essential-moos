@@ -233,6 +233,9 @@ bool Share::Impl::OnStartUp()
 	//return true;
 	EnableCommandMessageFiltering(true);
 
+	SetIterateMode(REGULAR_ITERATE_AND_COMMS_DRIVEN_MAIL);
+	SetAppFreq(40,0);
+
 	try
 	{
 /*
@@ -313,10 +316,18 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 			std::string route_description = trim(MOOS::Chomp(configuration_string,"&"));
 			std::list<std::string> parts;
 
+			if(route_description.find(":")==std::string ::npos)
+			{
+				std::cerr<<RED<<"error: short hand failed to parse "<<copy_config
+													<<" not enough parts in route\n"<<NORMAL;
+				return false;
+			}
 			while(!route_description.empty())
 			{
 				parts.push_back(MOOS::Chomp(route_description,":"));
 			}
+
+
 
 			std::string dest_name = src_name;
 
