@@ -40,7 +40,6 @@ bool Listener::Run()
 	thread_.Initialise(dispatch, this);
 	return thread_.Start();
 }
-
 bool Listener::ListenLoop()
 {
 	try
@@ -129,6 +128,8 @@ bool Listener::ListenLoop()
 		std::cerr<<"    "<<std::strerror(errno)<<std::endl;
 		std::cerr<<"    input route abandoned ("<<address_.to_string()<<")"<<std::endl;
 		std::cerr<<MOOS::ConsoleColours::reset();
+
+		exit(-1);
 
 		return false;
 	}
