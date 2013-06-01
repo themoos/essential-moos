@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <iostream>
 #include "Listener.h"
+#include "MOOS/libMOOS/Utils/ConsoleColours.h"
 
 
 namespace MOOS {
@@ -113,6 +114,7 @@ bool Listener::ListenLoop()
 				CMOOSMsg msg;
 				msg.Serialize(incoming_buffer.data(), incoming_buffer.size(), false);
 
+
 				//push onto queue
 				queue_.Push(msg);
 			}
@@ -121,7 +123,14 @@ bool Listener::ListenLoop()
 	}
 	catch(const std::exception & e)
 	{
-		std::cerr<<"caught exception in listening thread: "<<e.what()<<std::strerror(errno)<<std::endl;
+		std::cerr<<MOOS::ConsoleColours::Red();
+		std::cerr<<"Caught exception in a listening thread:\n";
+		std::cerr<<"    "<<e.what()<<std::endl;
+		std::cerr<<"    "<<std::strerror(errno)<<std::endl;
+		std::cerr<<"    input route abandoned ("<<address_.to_string()<<")"<<std::endl;
+		std::cerr<<MOOS::ConsoleColours::reset();
+
+		return false;
 	}
 
 	return true;
