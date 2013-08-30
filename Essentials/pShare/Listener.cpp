@@ -5,12 +5,18 @@
  *      Author: pnewman
  */
 #ifndef _WIN32
-#include "unistd.h"
+	#include "unistd.h"
+	#include <sys/socket.h>
+	#include <arpa/inet.h>
+	#include <netinet/in.h>
+#else
+	#include <winsock2.h>
+	#include <ws2tcpip.h> //for ip_mreq
+	#include "winbase.h"
+	#include "winnt.h"
+	#include "windows.h"
 #endif
 
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <string>
 #include <cstring>
 #include <stdexcept>
@@ -52,7 +58,7 @@ bool Listener::ListenLoop()
 
 		//we want to be able to resuse it (multiple folk are interested)
 		int reuse = 1;
-		if (setsockopt(socket_fd, SOL_SOCKET,SO_REUSEADDR/* SO_REUSEPORT*/, &reuse, sizeof(reuse)) == -1)
+		if (setsockopt(socket_fd, SOL_SOCKET,SO_REUSEADDR/* SO_REUSEPORT*/, (const char*)&reuse, sizeof(reuse)) == -1)
 			throw std::runtime_error("Listener::ListenLoop::setsockopt::reuse");
 
 /*		if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEPORT,
@@ -63,7 +69,7 @@ bool Listener::ListenLoop()
 		//give ourselves plenty of receive space
 		//set aside some space for receiving - just a few multiples of 64K
 		int rx_buffer_size = 64*1024*28;
-		if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, &rx_buffer_size, sizeof(rx_buffer_size)) == -1)
+		if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVBUF, (const char*)&rx_buffer_size, sizeof(rx_buffer_size)) == -1)
 			throw std::runtime_error("Listener::ListenLoop()::setsockopt::rcvbuf");
 
 
@@ -91,7 +97,7 @@ bool Listener::ListenLoop()
 			struct ip_mreq mreq;
 			mreq.imr_multiaddr.s_addr = inet_addr(address_.host().c_str());
 			mreq.imr_interface.s_addr = INADDR_ANY;
-			if(setsockopt(socket_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq))==-1)
+			if(setsockopt(socket_fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&mreq, sizeof(mreq))==-1)
 				throw std::runtime_error("Listener::ListenLoop()::setsockopt::ADD_MEMBERSHIP");
 		}
 
