@@ -63,7 +63,8 @@ public:
     //constructor
     CAntler();
     //this is the only public function. Call it to have Antler do its thing.
-    bool Run(const std::string & sMissionFile,std::set<std::string> Filter = std::set<std::string>() );
+    bool Run(const std::string & sMissionFile,
+             std::set<std::string> Filter = std::set<std::string>() );
         
     //run in a headless fashion - instructions will be recieved via MOOSComms
     bool Run(const std::string & sHost,  int lPort, const std::string & sAntlerName);
@@ -88,11 +89,19 @@ protected:
     //create, configure and launch a process
     MOOSProc* CreateMOOSProcess(std:: string sProcName);
         
-    // called to figure out what xterm parameters should be used with launch (ie where should the xterm be and how should it look)
-    bool MakeConsoleLaunchParams(std::string sParam,STRING_LIST & LaunchList,std::string sProcName,std::string sMOOSName);
+    // called to figure out what xterm parameters should be used with launch 
+    // (ie where should the xterm be and how should it look)
+    bool MakeConsoleLaunchParams(std::string sParam,
+                                 STRING_LIST & LaunchList,
+                                 std::string sProcName,
+                                 std::string sMOOSName);
         
-    //caled to figure out what if any additional  parameters should be passed to the process being launched	
-    bool MakeExtraExecutableParameters(std::string sParam,STRING_LIST & ExtraCommandLineParameters,std::string sProcName,std::string sMOOSName);
+    //caled to figure out what if any additional parameters 
+    //should be passed to the process being launched	
+    bool MakeExtraExecutableParameters(std::string sParam,
+                                       STRING_LIST & ExtraCommandLineParameters,
+                                       std::string sProcName,
+                                       std::string sMOOSName);
         
     //Functions responsible for actually start new processes according to OS
 #ifndef _WIN32
