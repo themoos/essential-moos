@@ -87,7 +87,24 @@ bool CAntler::DoRemoteControl()
         if (m_pMOOSComms->Fetch(NewMail))
         {
             CMOOSMsg Msg;
-            if (m_bHeadless)
+            if (!m_bHeadless)
+            {
+                if (m_pMOOSComms->PeekAndCheckMail(NewMail, "ANTLER_STATUS", Msg))
+                {
+                    std::string sWhat;
+                    MOOSValFromString(sWhat, Msg.GetString(),"Action");
+                    std::string sProc;
+                    MOOSValFromString(sProc, Msg.GetString(),"Process");
+                    std::string sID;
+                    MOOSValFromString(sID, Msg.GetString(), "AntlerID");
+                    
+                    MOOSTrace("   [rmt] Process %-15s has %s (by %s)\n",
+                              sProc.c_str(),
+                              sWhat.c_str(),
+                              sID.c_str());
+                }    
+            }
+            else // headless
             {
                 
                 if (m_pMOOSComms->PeekMail(NewMail,"MISSION_FILE",Msg))
@@ -103,10 +120,8 @@ bool CAntler::DoRemoteControl()
                               Msg.GetString().size());
                     MOOSTrace("   shutting down all current spawned processes:\n");
                     
-                    //tell the current job to quit
+                    //tell the current job to quit, and wait for it to happen
                     m_bQuitCurrentJob = true;
-                    
-                    //wait for that to happen
                     m_JobLock.Lock();        
                     
                     //here we copy the mission file contained in the message to 
@@ -124,7 +139,6 @@ bool CAntler::DoRemoteControl()
                               istream_iterator<string>(),
                               std::inserter(m_Filter,m_Filter.begin()));
                     
-                    
                     //write out the whole file
                     std::ofstream Out(m_sReceivedMissionFile.c_str());
                     if (!Out.is_open())
@@ -133,43 +147,18 @@ bool CAntler::DoRemoteControl()
                         return MOOSFail("failed to open mission file for writing");
                     }
                     
-                    //you've gotta lurve C++ ...
-                    Out<<ss.rdbuf();
-                    
+                    Out << ss.rdbuf();  //you've gotta lurve C++ ...
                     Out.close();
                     
-                    //we no longer want the current job to quit (it already has)
-                    m_bQuitCurrentJob = false;
-                    
-                    //signal that we have more work to do
-                    m_bNewJob =true;
-                    
-                    //let thread 0 continue
-                    m_JobLock.UnLock();
-                    
-                    
+                    m_bQuitCurrentJob = false;  // don't quit; it has already quit
+                    m_bNewJob = true;  //signal that we have more work to do
+                    m_JobLock.UnLock();  //let thread 0 continue
                 }
-            }
-            else
-            {
-                if (m_pMOOSComms->PeekAndCheckMail(NewMail, "ANTLER_STATUS", Msg))
-                {
-                    std::string sWhat;
-                    MOOSValFromString(sWhat, Msg.GetString(),"Action");
-                    std::string sProc;
-                    MOOSValFromString(sProc, Msg.GetString(),"Process");
-                    std::string sID;
-                    MOOSValFromString(sID, Msg.GetString(), "AntlerID");
-                    
-                    MOOSTrace("   [rmt] Process %-15s has %s (by %s)\n",
-                              sProc.c_str(),
-                              sWhat.c_str(),
-                              sID.c_str());
-                }    
             }
         }
     }        
 }
+
 
 bool CAntler::SetVerbosity(VERBOSITY_LEVEL eLevel)
 {
@@ -189,6 +178,7 @@ bool CAntler::SetVerbosity(VERBOSITY_LEVEL eLevel)
     }
     return true;
 }
+
 
 bool CAntler::ConfigureMOOSComms()
 {
@@ -263,7 +253,6 @@ bool CAntler::OnMOOSDisconnect()
 {
     if (m_bHeadless)
     {
-        
         MOOSTrace("   DB Connection Lost\n");    
         
         if (m_bKillOnDBDisconnect)
@@ -282,6 +271,7 @@ bool CAntler::OnMOOSDisconnect()
     }
     return true;
 }
+
 
 bool CAntler::PublishProcessQuit(const std::string & sProc)
 {
@@ -318,59 +308,56 @@ bool CAntler::PublishProcessLaunch(const std::string & sProc)
 
 bool CAntler::KillNicely(MOOSProc* pProc)
 {
-#ifndef _WIN32
-		
-    if (m_bSupportGentleKill)
+#ifdef _WIN32
+
+    //MOOSTrace("Warning - gentle killing of win32 processes is not implemented\n");
+    pProc->pWin32Proc->vTerminate();   
+
+#else		
+
+    if (!m_bSupportGentleKill)
     {
-        if (pProc->m_bNewConsole)
+        kill(pProc->m_ChildPID,SIGTERM);
+    }
+    else
+    {
+        if (!pProc->m_bNewConsole)
+        {
+            //the proc ID we have is of the actuall MOOSProcess and not its parent
+            //we can just kill it...
+            kill(pProc->m_ChildPID,SIGTERM);
+        }
+        else
         {
             //we need to be crafty....
             std::string sCmd = "ps -e -o ppid= -o pid=";
 			
             FILE* In = popen(sCmd.c_str(),"r");
 			
-            if (In!=NULL)
+            if (In == NULL) return false;
+
+            bool bFound = false;
+            char Line[256];
+            while (fgets(Line,sizeof(Line),In))
             {
-                bool bFound = false;
-                char Line[256];
-                while (fgets(Line,sizeof(Line),In))
+                std::stringstream L(Line);
+                int ppid,pid;
+                L>>ppid;
+                L>>pid;
+		
+                if (pProc->m_ChildPID==ppid)
                 {
-                    std::stringstream L(Line);
-                    int ppid,pid;
-                    L>>ppid;
-                    L>>pid;
-					
-                    if (pProc->m_ChildPID==ppid)
-                    {
-                        kill(pid,SIGTERM);
-                        bFound = true;
-                    }
-                }	
-                pclose(In);
-                return bFound;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            //the proc ID we have is of the actuall MOOSProcess and not its parent
-            //we can just kill it...
-            kill(pProc->m_ChildPID,SIGTERM);
+                    kill(pid,SIGTERM);
+                    bFound = true;
+                }
+            }	
+            pclose(In);
+            return bFound;
         }
     }
-    else
-    {
-        kill(pProc->m_ChildPID,SIGTERM);
-    }
-#else
-    //MOOSTrace("Warning - gentle killing of win32 processes is not implemented\n");
-    pProc->pWin32Proc->vTerminate();   
-    return true;
 
 #endif
+
     return true;
 }
 
@@ -407,7 +394,12 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
     m_sDefaultExecutablePath = "SYSTEMPATH";
     m_MissionReader.GetConfigurationParam("ExecutablePath",m_sDefaultExecutablePath);
     
-    if (!MOOSStrCmp("SYSTEMPATH",m_sDefaultExecutablePath))
+    if (MOOSStrCmp("SYSTEMPATH",m_sDefaultExecutablePath))
+    {
+        MOOSTrace("Unless directed otherwise using system path to locate binaries \n");
+        m_sDefaultExecutablePath="";
+    }
+    else
     {
         //MOOSTrace("\"ExecutablePath\" is %s\n",m_sDefaultExecutablePath.c_str());
         if (*m_sDefaultExecutablePath.rbegin()!='/')
@@ -417,11 +409,6 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
         }
         
     }
-    else
-    {
-        MOOSTrace("Unless directed otherwise using system path to locate binaries \n");
-        m_sDefaultExecutablePath="";
-    }
     
 	
     //are we being ask to support gentle process killing?
@@ -429,7 +416,7 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
     m_bSupportGentleKill= false;
 #else
     m_bSupportGentleKill = true;
-    m_MissionReader.GetConfigurationParam("GentleKill",m_bSupportGentleKill);
+    m_MissionReader.GetConfigurationParam("GentleKill", m_bSupportGentleKill);
 #endif
 	
 	
@@ -440,26 +427,26 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
     {
         std::string sLine = *p;
         
-        std::string sWhat = MOOSChomp(sLine,"=");
+        std::string sWhat = MOOSChomp(sLine, "=");
         
-        if (MOOSStrCmp(sWhat,"RUN"))
+        if (MOOSStrCmp(sWhat, "RUN"))
         {
             //OK we are being asked to run a process
             
             //try to create a process
             MOOSProc* pNew  = CreateMOOSProcess(sLine);
             
-            if (pNew!=NULL)
+            if (pNew != NULL)
             {
                 //this a really important bit of text most folk will want to see it...
-                InhibitMOOSTraceInThisThread(m_eVerbosity==QUIET);
+                InhibitMOOSTraceInThisThread(m_eVerbosity == QUIET);
                 {
                     MOOSTrace("   [%.3d] Process: %-15s ~ %-15s launched successfully\n",
                               m_nCurrentLaunch,
                               pNew->m_sApp.c_str(),
                               pNew->m_sMOOSName.c_str());
                 }
-                InhibitMOOSTraceInThisThread(m_eVerbosity!=CHATTY);
+                InhibitMOOSTraceInThisThread(m_eVerbosity != CHATTY);
 				
                 m_ProcList.push_front(pNew);
                 m_nCurrentLaunch++;
@@ -474,9 +461,14 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
     
     
     
-    if (bHeadless==false)
+    if (bHeadless)
     {
-        bool bMaster=false;
+        m_bKillOnDBDisconnect = true;
+        m_MissionReader.GetConfigurationParam("KillOnDBDisconnect",m_bKillOnDBDisconnect);
+    }
+    else
+    {
+        bool bMaster = false;
         m_MissionReader.GetConfigurationParam("EnableDistributed",bMaster);
         if (bMaster)
         {
@@ -490,22 +482,17 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
             
         }
     }
-    else
-    {
-        m_bKillOnDBDisconnect = true;
-        m_MissionReader.GetConfigurationParam("KillOnDBDisconnect",m_bKillOnDBDisconnect);
-    }
     
 
     
     //now wait on all our processes to close....
-    while (m_ProcList.size()!=0)
+    while (m_ProcList.size() != 0)
     {
         MOOSPROC_LIST::iterator q;
         
-        for (q = m_ProcList.begin();q!=m_ProcList.end();q++)
+        for (q = m_ProcList.begin(); q != m_ProcList.end(); q++)
         {
-            MOOSProc * pMOOSProc = *q;
+            MOOSProc* pMOOSProc = *q;
             
 #ifdef _WIN32
             if (m_bQuitCurrentJob)
@@ -619,7 +606,16 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,
     
     
     std::string sLaunchKey = bNIX?"XConfig":"Win32Config"; 
-    if (!MOOSValFromString(sLaunchConfigurationName, sParam, sLaunchKey))
+    if (MOOSValFromString(sLaunchConfigurationName, sParam, sLaunchKey))
+    {
+        
+        //OK look for this configuration string
+        if (!m_MissionReader.GetConfigurationParam(sLaunchConfigurationName, 
+                                                   sLaunchConfiguration))
+            return MOOSFail("   warning: could not find resource string called \"%s\"",
+                            sLaunchConfigurationName.c_str()) ;
+    }
+    else
     {
         //some applications are v.important in MOOS 
         // -- if not told otherwise they get special colours
@@ -631,12 +627,18 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,
             sBgColor = bNIX ? "#CC0000" : "RED";
             sFgColor = bNIX ? "#FFFFFF" : "";
         }
+
         if (MOOSStrCmp(sProcName,"MOOSDB"))
         {
             sBgColor = bNIX? "#003300" : "BLUE";
             sFgColor = bNIX? "#FFFFFF" : "";
         }
-        if (bNIX)
+
+        if (!bNIX)
+        {
+            sLaunchConfiguration = sBgColor;
+        }
+        else
         {
             sLaunchConfiguration = "-geometry," 
                 + MOOSFormat("80x12+2+%d", (m_nCurrentLaunch++)*50)
@@ -650,19 +652,6 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,
                                       : MOOSFormat("as MOOSName \"%s\"",
                                                    sMOOSName.c_str()).c_str());
         }
-        else
-        {
-            sLaunchConfiguration = sBgColor;
-        }
-    }
-    else
-    {
-        
-        //OK look for this configuration string
-        if (!m_MissionReader.GetConfigurationParam(sLaunchConfigurationName, 
-                                                   sLaunchConfiguration))
-            return MOOSFail("   warning: could not find resource string called \"%s\"",
-                            sLaunchConfigurationName.c_str()) ;
     }
     
     //OK now simply chomp our way through a space delimited list...
@@ -711,11 +700,21 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
     bool bDistributed=false;
     m_MissionReader.GetConfigurationParam("EnableDistributed",bDistributed);
 
-    if (bDistributed)
+    if (!bDistributed)
     {
-               
-        
-        if (m_bHeadless)
+        //we run everything
+    }
+    else
+    {
+        if (!m_bHeadless)
+        {
+            //we are a TopMOOS
+            std::string sAntlerRequired;
+            if (MOOSValFromString(sAntlerRequired, sOption, "AntlerID", true))
+                return NULL; //this is for a drone
+            
+        }
+        else
         {
             //we are a drone
             std::string sAntlerRequired;
@@ -729,18 +728,6 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
             //OK it is for us...
             //MOOSTrace("Headless Antler found a RUN directive...\n");
         }
-        else
-        {
-            //we are a TopMOOS
-            std::string sAntlerRequired;
-            if (MOOSValFromString(sAntlerRequired, sOption, "AntlerID", true))
-                return NULL; //this is for a drone
-            
-        }
-    }
-    else
-    {
-        //we run everything
     }
     
     //do we want a new console?
@@ -759,7 +746,12 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
     // system wide and not in the default executable path
     std::string sSpecifiedPath;
     std::string sFullProcName=sProcName;
-    if (MOOSValFromString(sSpecifiedPath, sOption, "PATH",true))
+    if (!MOOSValFromString(sSpecifiedPath, sOption, "PATH", true))
+    {
+        //we just use the Anter-wide Exepath
+        sFullProcName = m_sDefaultExecutablePath+sProcName;
+    }
+    else
     {
         if (MOOSStrCmp(sSpecifiedPath,"SYSTEM"))
         {
@@ -768,13 +760,8 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
         else
         {
             //ok we are being told to look in a special place
-            sFullProcName=sSpecifiedPath+"/"+sProcName;
+            sFullProcName = sSpecifiedPath + "/" + sProcName;
         }
-    }
-    else
-    {
-        //we just use the Anter-wide Exepath
-        sFullProcName = m_sDefaultExecutablePath+sProcName;
     }
     
     //name of process as registered...is the first param after "~"
@@ -821,7 +808,6 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
                                   ExtraCommandLineParameters,
                                   sProcName,
                                   sMOOSName);
-    
     
     
     //All good up to here, now make a new process info holder stucture...
