@@ -619,8 +619,8 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,
     {
         //some applications are v.important in MOOS 
         // -- if not told otherwise they get special colours
-        string sBgColor = bNIX? "#DDDDFF" : "";
-        string sFgColor = bNIX? "#000000" : "";
+        string sBgColor = bNIX ? "#DDDDFF" : "";
+        string sFgColor = bNIX ? "#000000" : "";
         
         if (MOOSStrCmp(sProcName,"iRemote"))
         {
@@ -630,8 +630,8 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,
 
         if (MOOSStrCmp(sProcName,"MOOSDB"))
         {
-            sBgColor = bNIX? "#003300" : "BLUE";
-            sFgColor = bNIX? "#FFFFFF" : "";
+            sBgColor = bNIX ? "#003300" : "BLUE";
+            sFgColor = bNIX ? "#FFFFFF" : "";
         }
 
         if (!bNIX)
@@ -640,17 +640,16 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,
         }
         else
         {
+            std::string sLabel = sMOOSName.empty()
+                ? ""
+                : MOOSFormat("as MOOSName \"%s\"", sMOOSName.c_str()).c_str());
+
             sLaunchConfiguration = "-geometry," 
                 + MOOSFormat("80x12+2+%d", (m_nCurrentLaunch++)*50)
                 + ",+sb,"
                 + ",-fg," + sFgColor
                 + ",-bg," + sBgColor
-                + ",-T," + MOOSFormat("%s %s",
-                                      sProcName.c_str(),
-                                      sMOOSName.empty() 
-                                      ? ""
-                                      : MOOSFormat("as MOOSName \"%s\"",
-                                                   sMOOSName.c_str()).c_str());
+                + ",-T," + MOOSFormat("%s %s", sProcName.c_str(), sLabel);
         }
     }
     
