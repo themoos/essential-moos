@@ -644,14 +644,14 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,
         {
             std::string sLabel = sMOOSName.empty()
                 ? ""
-                : MOOSFormat("as MOOSName \"%s\"", sMOOSName.c_str()).c_str());
+                : MOOSFormat("as MOOSName \"%s\"", sMOOSName.c_str()).c_str();
 
             sLaunchConfiguration = "-geometry," 
                 + MOOSFormat("80x12+2+%d", (m_nCurrentLaunch++)*50)
                 + ",+sb,"
                 + ",-fg," + sFgColor
                 + ",-bg," + sBgColor
-                + ",-T," + MOOSFormat("%s %s", sProcName.c_str(), sLabel);
+                + ",-T," + MOOSFormat("%s %s", sProcName.c_str(), sLabel.c_str());
         }
     }
     
@@ -676,7 +676,7 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
 {
     
     
-    //what tis its name? (if no @ symbol we just get the name and no cmdline)
+    //what is its name? (if no @ symbol we just get the name and no cmdline)
     string sProcName = MOOSChomp(sConfiguration, "@");
     
     //further parameters are to left left of @
