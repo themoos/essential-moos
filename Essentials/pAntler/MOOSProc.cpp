@@ -511,12 +511,3 @@ bool CMOOSProcNixBase::IsStopped()
 
 
 #endif        
-
-
-
-
-
-
-
-
-    
