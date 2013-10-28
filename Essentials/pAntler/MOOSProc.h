@@ -226,4 +226,4 @@ protected:
 #endif // _WIN32
 
 
-#endif // ifndef MOOSPROC
+#endif // ifndef MOOSPROCH
