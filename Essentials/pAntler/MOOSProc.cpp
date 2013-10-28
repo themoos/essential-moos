@@ -348,7 +348,7 @@ bool CMOOSProcNixBase::Start(bool bGentle)
         
         if (!m_FullCommandLine.size())
         {
-            MOOSTrace("pAntler author error: no elements in m_FullCommandLine!");
+            MOOSTrace("pAntler author error: no elements in m_FullCommandLine!\n");
             return false;
         }
         

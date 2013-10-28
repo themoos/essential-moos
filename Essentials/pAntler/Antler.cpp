@@ -532,7 +532,7 @@ CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
             lt = L_SCREEN;
         else
         {
-            MOOSTrace("Error: LaunchType was not one of (Process, Console, Screen)");
+            MOOSTrace("Error: LaunchType was not one of (Process, Console, Screen)\n");
             return NULL;
         }
     }
@@ -547,12 +547,12 @@ CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
     // fill in the value if we need it.  otherwise, warn if we have both specifiers
     if (L_UNDEF == lt)
     {
-        MOOSTrace("Warning: NEWCONSOLE is deprecated.  Use LAUNCHTYPE.");
+        //MOOSTrace("Warning: NEWCONSOLE is deprecated.  Use LAUNCHTYPE.\n");
         lt = bNewConsole ? L_CONSOLE : L_PROCESS;
     }
     else if (bGotConsoleParam)
     {
-        MOOSTrace("Warning: LAUNCHTYPE overrides NEWCONSOLE, so ignoring this value");
+        MOOSTrace("Warning: LAUNCHTYPE overrides NEWCONSOLE, so ignoring this value\n");
     }
     
     
@@ -577,10 +577,10 @@ CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
         pNewProc = new CMOOSProcConsoleWin32(config, &m_MissionReader);
         break;
     case L_SCREEN:
-        MOOSTrace("GNU screen launch is not yet supported under Win32");
+        MOOSTrace("GNU screen launch is not yet supported under Win32\n");
         return NULL;
     default:
-        MOOSTrace("LAUNCHTYPE and NEWCONSOLE didn't reveal the launch type");
+        MOOSTrace("LAUNCHTYPE and NEWCONSOLE didn't reveal the launch type\n");
         return NULL;
     }
 
@@ -598,7 +598,7 @@ CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
         pNewProc = new CMOOSProcScreenNix(config, &m_MissionReader);
         break;
     default:
-        MOOSTrace("LAUNCHTYPE and NEWCONSOLE didn't reveal the launch type");
+        MOOSTrace("LAUNCHTYPE and NEWCONSOLE didn't reveal the launch type\n");
         return NULL;
     }
 
@@ -607,7 +607,7 @@ CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
 
     if (!pNewProc->BuildConfig())
     {
-        MOOSTrace("App %s failed BuildConfig()", config.m_sAppName.c_str());
+        MOOSTrace("App %s failed BuildConfig()\n", config.m_sAppName.c_str());
         delete pNewProc;
         return NULL;
     }
