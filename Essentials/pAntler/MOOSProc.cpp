@@ -54,6 +54,7 @@ bool CMOOSProc::BuildConfig()
             return MOOSFail("   warning cannot find extra parameters named \"%s\"\n",
                             sExtraParamsName.c_str());
         
+        // convert commas to spaces
         while (!sExtraParams.empty())
             m_CommandLineParameters.push_back(MOOSChomp(sExtraParams, ","));
     }
@@ -308,6 +309,7 @@ bool CMOOSProcConsoleNix::BuildConfigSpecific()
     while (!sLaunchConfiguration.empty())
     {
         MOOSTrimWhiteSpace(sLaunchConfiguration);
+        // convert commas to spaces
         string sP = MOOSChomp(sLaunchConfiguration, ",");
         MOOSTrimWhiteSpace(sP);
         if (!sP.empty())
