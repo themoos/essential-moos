@@ -1,4 +1,6 @@
+
 #include "Antler.h"
+#include "MOOSProc.h"
 
 using namespace std;
 #include <sstream>
@@ -11,7 +13,6 @@ using namespace std;
 
 
 
-#define DEBUG_LAUNCH 0
 CAntler::CAntler()
 {
     m_JobLock.UnLock();    
@@ -306,61 +307,6 @@ bool CAntler::PublishProcessLaunch(const std::string & sProc)
 }
 
 
-bool CAntler::KillNicely(MOOSProc* pProc)
-{
-#ifdef _WIN32
-
-    //MOOSTrace("Warning - gentle killing of win32 processes is not implemented\n");
-    pProc->pWin32Proc->vTerminate();   
-
-#else		
-
-    if (!m_bSupportGentleKill)
-    {
-        kill(pProc->m_ChildPID, SIGTERM);
-    }
-    else
-    {
-        if (!pProc->m_bNewConsole)
-        {
-            //the proc ID we have is of the actuall MOOSProcess and not its parent
-            //we can just kill it...
-            kill(pProc->m_ChildPID, SIGTERM);
-        }
-        else
-        {
-            //we need to be crafty....
-            std::string sCmd = "ps -e -o ppid= -o pid=";
-			
-            FILE* In = popen(sCmd.c_str(), "r");
-			
-            if (In == NULL) return false;
-
-            bool bFound = false;
-            char Line[256];
-            while (fgets(Line, sizeof(Line), In))
-            {
-                std::stringstream L(Line);
-                int ppid, pid;
-                L >> ppid;
-                L >> pid;
-		
-                if (pProc->m_ChildPID == ppid)
-                {
-                    kill(pid, SIGTERM);
-                    bFound = true;
-                }
-            }	
-            pclose(In);
-            return bFound;
-        }
-    }
-
-#endif
-
-    return true;
-}
-
 
 bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
 {
@@ -412,13 +358,7 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
     
 	
     //are we being ask to support gentle process killing?
-#ifdef _WIN32
-    m_bSupportGentleKill= false;
-#else
-    m_bSupportGentleKill = true;
     m_MissionReader.GetConfigurationParam("GentleKill", m_bSupportGentleKill);
-#endif
-	
 	
 	
     //now cycle through each line in the configuration block. 
@@ -434,7 +374,7 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
             //OK we are being asked to run a process
             
             //try to create a process
-            MOOSProc* pNew  = CreateMOOSProcess(sLine);
+            CMOOSProc* pNew  = CreateMOOSProcess(sLine);
             
             if (pNew != NULL)
             {
@@ -443,14 +383,14 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
                 {
                     MOOSTrace("   [%.3d] Process: %-15s ~ %-15s launched successfully\n",
                               m_nCurrentLaunch,
-                              pNew->m_sApp.c_str(),
-                              pNew->m_sMOOSName.c_str());
+                              pNew->GetAppName().c_str(),
+                              pNew->GetMOOSName().c_str());
                 }
                 InhibitMOOSTraceInThisThread(m_eVerbosity != CHATTY);
 				
                 m_ProcList.push_front(pNew);
                 m_nCurrentLaunch++;
-                PublishProcessLaunch(pNew->m_sApp);
+                PublishProcessLaunch(pNew->GetAppName());
             }
             
             //wait a while
@@ -486,23 +426,22 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
 
     
     //now wait on all our processes to close....
-    while (m_ProcList.size() != 0)
+    while (m_ProcList.size())
     {
         MOOSPROC_LIST::iterator q;
         
         for (q = m_ProcList.begin(); q != m_ProcList.end(); q++)
         {
-            MOOSProc* pMOOSProc = *q;
+            CMOOSProc* pMOOSProc = *q;
             
-#ifdef _WIN32
             if (m_bQuitCurrentJob)
             {
-                KillNicely(pMOOSProc);
+                MOOSTrace("   actively killing running child %s\n",
+                          pMOOSProc->GetAppName().c_str());
+                pMOOSProc->Stop(m_bSupportGentleKill);
             }
-            
-            
-            pMOOSProc->pWin32Proc->vWaitForTerminate(100);
-            if (pMOOSProc->pWin32Proc->dwGetExitCode() != STILL_ACTIVE)
+ 
+            if (pMOOSProc->IsStopped())
             {
 
                 //this a really important bit of text most folk will want to see it...
@@ -510,50 +449,19 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
                 {
                     MOOSTrace("   [%.3d] Process: %-15s has quit\n",
                               --m_nCurrentLaunch,
-                              pMOOSProc->m_sApp.c_str());
+                              pMOOSProc->GetAppName().c_str());
                 }
                 InhibitMOOSTraceInThisThread(m_eVerbosity != CHATTY);
 
                 
-                PublishProcessQuit(pMOOSProc->m_sApp);
-                delete pMOOSProc->pWin32Attrib;
-                delete pMOOSProc->pWin32Proc;
+                PublishProcessQuit(pMOOSProc->GetAppName());
                 delete pMOOSProc;
                 
                 m_ProcList.erase(q);
                 break;
             }
-#else
-            if (m_bQuitCurrentJob)
-            {
-                MOOSTrace("   actively killing running child %s\n",
-                          pMOOSProc->m_sApp.c_str());
-                KillNicely(pMOOSProc);
-                //just give it a little time - for pities sake - no need for this pause
-                MOOSPause(300);
-            }
-            
-            
-            int nStatus = 0;
-            if (waitpid(pMOOSProc->m_ChildPID, &nStatus, WNOHANG)>0)
-            {
-				
-                InhibitMOOSTraceInThisThread(m_eVerbosity == QUIET);
-                {
-                    MOOSTrace("   [%.3d] Process: %-15s has quit\n",
-                              --m_nCurrentLaunch,
-                              pMOOSProc->m_sApp.c_str());
-                }
-                InhibitMOOSTraceInThisThread(m_eVerbosity != CHATTY);
-				
-                
-                PublishProcessQuit(pMOOSProc->m_sApp);
-                
-                m_ProcList.erase(q);
-                break;
-            }
+
             MOOSPause(100);
-#endif
             
         }
               
@@ -565,139 +473,19 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
 
 
 
-bool CAntler::MakeExtraExecutableParameters(std::string sParam,
-                                            STRING_LIST & ExtraCommandLineParameters,
-                                            std::string sProcName,
-                                            std::string sMOOSName)
+
+CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
 {
+    CProcCfg config;
     
-    ExtraCommandLineParameters.clear();
-    
-    std::string sExtraParamsName;
-    if (!MOOSValFromString(sExtraParamsName, sParam, "ExtraProcessParams", true))
-        return true;//nothing to do
-    
-    std::string sExtraParams;
-    
-    //OK look for this configuration string
-    if (!m_MissionReader.GetConfigurationParam(sExtraParamsName, sExtraParams))
-        return MOOSFail("   warning cannot find extra parameters named \"%s\"\n",
-                        sExtraParamsName.c_str());
-    
-    while (!sExtraParams.empty())
-        ExtraCommandLineParameters.push_back(MOOSChomp(sExtraParams, ","));
-    
-    return true;
-    
-}
-
-bool CAntler::MakeConsoleLaunchParams(std::string sParam,
-                                      STRING_LIST & LaunchList, 
-                                      std::string sProcName,
-                                      std::string sMOOSName)
-{
-    //sParam is a string in the Run=ProcName @ sParam ~ MOOSName
-    std::string sLaunchConfigurationName;
-    std::string sLaunchConfiguration;
-#ifdef _WIN32
-    bool bNIX = false;
-	
-#else
-    bool bNIX= true; 
-#endif
-    
-    
-    std::string sLaunchKey = bNIX?"XConfig":"Win32Config"; 
-    if (MOOSValFromString(sLaunchConfigurationName, sParam, sLaunchKey))
+    if (!config.ParseConfig(sConfiguration))
     {
-        
-        //OK look for this configuration string
-        if (!m_MissionReader.GetConfigurationParam(sLaunchConfigurationName, 
-                                                   sLaunchConfiguration))
-            return MOOSFail("   warning: could not find resource string called \"%s\"",
-                            sLaunchConfigurationName.c_str()) ;
-    }
-    else
-    {
-        //some applications are v.important in MOOS 
-        // -- if not told otherwise they get special colours
-        string sBgColor = bNIX ? "#DDDDFF" : "";
-        string sFgColor = bNIX ? "#000000" : "";
-        
-        if (MOOSStrCmp(sProcName, "iRemote"))
-        {
-            sBgColor = bNIX ? "#CC0000" : "RED";
-            sFgColor = bNIX ? "#FFFFFF" : "";
-        }
-
-        if (MOOSStrCmp(sProcName, "MOOSDB"))
-        {
-            sBgColor = bNIX ? "#003300" : "BLUE";
-            sFgColor = bNIX ? "#FFFFFF" : "";
-        }
-
-        if (!bNIX)
-        {
-            sLaunchConfiguration = sBgColor;
-        }
-        else
-        {
-            std::string sLabel = sMOOSName.empty()
-                ? ""
-                : MOOSFormat("as MOOSName \"%s\"", sMOOSName.c_str()).c_str();
-
-            sLaunchConfiguration = "-geometry," 
-                + MOOSFormat("80x12+2+%d", (m_nCurrentLaunch++)*50)
-                + ",+sb,"
-                + ",-fg," + sFgColor
-                + ",-bg," + sBgColor
-                + ",-T," + MOOSFormat("%s %s", sProcName.c_str(), sLabel.c_str());
-        }
-    }
-    
-    //OK now simply chomp our way through a space delimited list...
-    while (!sLaunchConfiguration.empty())
-    {
-        MOOSTrimWhiteSpace(sLaunchConfiguration);
-        std::string sP = MOOSChomp(sLaunchConfiguration, ",");
-        MOOSTrimWhiteSpace(sP);
-        if (!sP.empty())
-            LaunchList.push_back(sP);
-    }
-    
-    return !LaunchList.empty();
-    
-    
-}
-
-
-
-CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
-{
-    
-    
-    //what is its name? (if no @ symbol we just get the name and no cmdline)
-    string sProcName = MOOSChomp(sConfiguration, "@");
-    
-    //further parameters are to left left of @
-    string sParam = sConfiguration;
-    
-    if (sProcName.empty())
-    {
-        MOOSTrace("no process specified - RUN=???\n");
         return NULL;
     }
-    
-    //std::string sFullProcName = m_sDefaultExecutablePath+sProcName;
-    
-    //if things go well this will eventually point to a new Process
-    MOOSProc * pNewProc    = NULL;
-    
-    //look for tilde demarking end of param=val block
-    string sOption = MOOSChomp(sParam, "~");
-    
-    
-    
+
+    // set pointer to current launch number
+    config.m_nCurrentLaunch = &m_nCurrentLaunch;
+
     bool bDistributed = false;
     m_MissionReader.GetConfigurationParam("EnableDistributed", bDistributed);
 
@@ -707,19 +495,18 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
     }
     else
     {
+        std::string sAntlerRequired;
         if (!m_bHeadless)
         {
             //we are a TopMOOS
-            std::string sAntlerRequired;
-            if (MOOSValFromString(sAntlerRequired, sOption, "AntlerID", true))
+            if (config.GetParamValue("AntlerID", sAntlerRequired))
                 return NULL; //this is for a drone
             
         }
         else
         {
             //we are a drone
-            std::string sAntlerRequired;
-            if (!MOOSValFromString(sAntlerRequired, sOption, "AntlerID", true))
+            if (config.GetParamValue("AntlerID", sAntlerRequired))
                 return NULL; //this is for primary Antler
             
                         
@@ -731,110 +518,112 @@ CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
         }
     }
     
-    //do we want a new console?
-    bool bNewConsole = false;
-    MOOSValFromString(bNewConsole, sOption, "NEWCONSOLE", true);
-    
-    //do we want to inhibit the passing of MOOS parameters (mission file and MOOSName)
-    bool bInhibitMOOSParams = false;
-    MOOSValFromString(bInhibitMOOSParams, sOption, "InhibitMOOSParams", true);
-    
-    //by default process are assumed to be on the system path
-    //users can specify an alternative path for all process by setting 
-    //    "ExectutablePath=<Path>" in the mission file configuration block.
-    //user has the option of specifying paths individually process by process.
-    //alternativelt they can specify that a particular process should be located by 
-    // system wide and not in the default executable path
-    std::string sSpecifiedPath;
-    std::string sFullProcName = sProcName;
-    if (!MOOSValFromString(sSpecifiedPath, sOption, "PATH", true))
+
+    //NEW option: launch (process, console, screen)
+    LAUNCH_TYPE lt = L_UNDEF;
+    string sLaunchType;
+    if (config.GetParamValue("LAUNCHTYPE", sLaunchType))
     {
-        //we just use the Anter-wide Exepath
-        sFullProcName = m_sDefaultExecutablePath+sProcName;
-    }
-    else
-    {
-        if (MOOSStrCmp(sSpecifiedPath, "SYSTEM"))
-        {
-            //do nothing - the system should know where to look 
-        }
+        if (MOOSStrCmp("PROCESS", sLaunchType))
+            lt = L_PROCESS;
+        else if (MOOSStrCmp("CONSOLE", sLaunchType))
+            lt = L_CONSOLE;
+        else if (MOOSStrCmp("SCREEN", sLaunchType))
+            lt = L_SCREEN;
         else
         {
-            //ok we are being told to look in a special place
-            sFullProcName = sSpecifiedPath + "/" + sProcName;
+            MOOSTrace("Error: LaunchType was not one of (Process, Console, Screen)");
+            return NULL;
         }
     }
     
-    //name of process as registered...is the first param after "~"
-    string sMOOSName = MOOSChomp(sParam);
-    
-    //here we figure out what MOOS name is implied if none is given (thanks to N.P and F.A)
-    if (sMOOSName.empty())
+    // backwards compatibility with NEWCONSOLE
+    bool bNewConsole = false;
+    bool bGotConsoleParam = MOOSValFromString(bNewConsole, 
+                                              config.m_sParams, 
+                                              "NEWCONSOLE", 
+                                              true);
+
+    // fill in the value if we need it.  otherwise, warn if we have both specifiers
+    if (L_UNDEF == lt)
     {
-        std::string sTmp = sProcName;
-        if (sTmp.rfind('/') != string::npos) 
-        {
-            sTmp = sTmp.substr(sTmp.rfind('/')+1);
-        }
-        if (sTmp.empty()) 
-        { 
-            // ended with a / ?
-            MOOSTrace("Error in configuration  -MOOS Name cannot end in \" / \" : %s\n",
-                      sProcName.c_str());
-            return NULL;
-        }
-        sMOOSName = sTmp;
+        MOOSTrace("Warning: NEWCONSOLE is deprecated.  Use LAUNCHTYPE.");
+        lt = bNewConsole ? L_CONSOLE : L_PROCESS;
+    }
+    else if (bGotConsoleParam)
+    {
+        MOOSTrace("Warning: LAUNCHTYPE overrides NEWCONSOLE, so ignoring this value");
     }
     
     
     //here we bail according to our filters 
-    if (!m_Filter.empty() && m_Filter.find(sMOOSName) == m_Filter.end())
+    if (!m_Filter.empty() && m_Filter.find(config.m_sMOOSName) == m_Filter.end())
     {
         return NULL;
     }
-        
-    //it is pssible to specifiy complicated parameters to the process being launched. 
-    // (For example xterm being passed a whole load of configurations and then the name 
-    // of the MOOS process it should itself launch. 
-    // This next call fills in a string list of such parameters
-    STRING_LIST sLaunchParams;
-    if (bNewConsole)
-    	MakeConsoleLaunchParams(sOption, sLaunchParams, sProcName, sMOOSName);
+
+
+    //All good up to here, now make a new process holder stucture...        
+    CMOOSProc* pNewProc = NULL;
+
+#ifdef _WIN32
+
+    switch (lt)
+    {
+    case L_PROCESS:
+        pNewProc = new CMOOSProcWin32(config, &m_MissionReader);
+        break;
+    case L_CONSOLE:
+        pNewProc = new CMOOSProcConsoleWin32(config, &m_MissionReader);
+        break;
+    case L_SCREEN:
+        MOOSTrace("GNU screen launch is not yet supported under Win32");
+        return NULL;
+    default:
+        MOOSTrace("LAUNCHTYPE and NEWCONSOLE didn't reveal the launch type");
+        return NULL;
+    }
+
+#else        
+
+    switch (lt)
+    {
+    case L_PROCESS:
+        pNewProc = new CMOOSProcNix(config, &m_MissionReader);
+        break;
+    case L_CONSOLE:
+        pNewProc = new CMOOSProcConsoleNix(config, &m_MissionReader);
+        break;
+    case L_SCREEN:
+        pNewProc = new CMOOSProcScreenNix(config, &m_MissionReader);
+        break;
+    default:
+        MOOSTrace("LAUNCHTYPE and NEWCONSOLE didn't reveal the launch type");
+        return NULL;
+    }
+
+#endif
     
-    
-    //here we figure what extra command line parameters should be given to the MOOS Process
-    //being launched.
-    STRING_LIST ExtraCommandLineParameters;
-    MakeExtraExecutableParameters(sOption,
-                                  ExtraCommandLineParameters,
-                                  sProcName,
-                                  sMOOSName);
-    
-    
-    //All good up to here, now make a new process info holder stucture...
-    pNewProc = new MOOSProc;
-    pNewProc->m_sApp = sFullProcName;
-    pNewProc->m_ExtraCommandLineParameters = ExtraCommandLineParameters;
-    pNewProc->m_ConsoleLaunchParameters = sLaunchParams;
-    pNewProc->m_bInhibitMOOSParams = bInhibitMOOSParams;
-    pNewProc->m_sMOOSName = sMOOSName;
-    pNewProc->m_bNewConsole = bNewConsole;
-    pNewProc->m_sMissionFile = m_MissionReader.GetFileName();
+
+    if (!pNewProc->BuildConfig())
+    {
+        MOOSTrace("App %s failed BuildConfig()", config.m_sAppName.c_str());
+        delete pNewProc;
+        return NULL;
+    }
+
     
     //finally spawn each according to his own
-#ifndef _WIN32
-    if (DoNixOSLaunch(pNewProc))
-#else
-        if (DoWin32Launch(pNewProc))
-#endif
-        {
-            return pNewProc;
-        }
-        else
-        {        
-            delete pNewProc;
-            return NULL;
-        }
+    if (pNewProc->Start(m_bSupportGentleKill))
+    {
+        ++m_nCurrentLaunch;
+        return pNewProc;
+    }
+    else
+    {        
+        delete pNewProc;
+        return NULL;
+    }
 }
 
 
@@ -847,16 +636,16 @@ bool CAntler::ShutDown()
 
     for (q = m_ProcList.begin();q != m_ProcList.end(); q++)
     {
-        MOOSProc * pMOOSProc = *q;
+        CMOOSProc * pMOOSProc = *q;
 
-        if (KillNicely(pMOOSProc))
+        if (pMOOSProc->Stop(m_bSupportGentleKill))
         {
 	 
-            int nStatus = 0;
 #ifndef _WIN32
 			
-            MOOSTrace("\n   Signalling %-15s ", pMOOSProc->m_sApp.c_str());
-            if (waitpid(pMOOSProc->m_ChildPID, &nStatus, 0)>0)
+            int nStatus = 0;
+            MOOSTrace("\n   Signalling %-15s ", pMOOSProc->GetAppName().c_str());
+            if (0 < waitpid(pMOOSProc->GetChildPID(), &nStatus, 0))
             {
                 MOOSTrace("[OK]");
             }		
@@ -870,196 +659,4 @@ bool CAntler::ShutDown()
 	 
     return true;
 }
-
-
-
-#ifdef _WIN32
-bool CAntler::DoWin32Launch(CAntler::MOOSProc * pNewProc)
-{
-    try
-    {
-        // make the command line ProcessBinaryName MissionFile ProcessMOOSName
-        string sCmd = pNewProc->m_sApp + " ";
-        if (pNewProc->m_bInhibitMOOSParams == false)
-            sCmd += pNewProc->m_sMissionFile + " " + pNewProc->m_sMOOSName + " ";
-        
-        //continuing this task, here we pass extra parameters to the MOOS process if required
-        for (STRING_LIST::iterator p = pNewProc->m_ExtraCommandLineParameters.begin();
-             p != pNewProc->m_ExtraCommandLineParameters.end();
-             p++)
-        {
-            sCmd += *p + " ";
-        }
-        
-        
-        //make a new process attributes class
-        pNewProc->pWin32Attrib = NULL;
-        pNewProc->pWin32Attrib = new XPCProcessAttrib(NULL, (char *)sCmd.c_str());
-        
-        if (pNewProc->m_bNewConsole)
-        {
-            pNewProc->pWin32Attrib->vSetCreationFlag(CREATE_NEW_CONSOLE 
-                                                     | CREATE_SUSPENDED);        
-        }
-        else
-        {
-            pNewProc->pWin32Attrib->vSetCreationFlag(CREATE_SUSPENDED);
-        }
-        
-        
-        //we shall use our own start up image as a starting point
-        STARTUPINFO StartUp;
-        GetStartupInfo (&StartUp);
-        
-        //set up the title
-        StartUp.lpTitle = (char*)pNewProc->m_sApp.c_str();
-        
-        //set up white text
-        StartUp.dwFillAttribute = 
-            FOREGROUND_INTENSITY| 
-            FOREGROUND_BLUE |
-            FOREGROUND_RED |
-            FOREGROUND_GREEN|
-            BACKGROUND_INTENSITY ;
-        
-        
-        //give users basic control over backgroun as an RGB combination
-        for (STRING_LIST::iterator q = pNewProc->m_ConsoleLaunchParameters.begin();
-             q != pNewProc->m_ConsoleLaunchParameters.end();
-             q++)
-        {
-            if (MOOSStrCmp(*q, "BACKGROUND_BLUE"))
-            {
-                StartUp.dwFillAttribute |= BACKGROUND_BLUE;
-                StartUp.dwFlags |= STARTF_USEFILLATTRIBUTE;
-            }
-            if (MOOSStrCmp(*q, "BACKGROUND_GREEN"))
-            {
-                StartUp.dwFillAttribute |= BACKGROUND_GREEN;
-                StartUp.dwFlags |= STARTF_USEFILLATTRIBUTE;
-            }
-            if (MOOSStrCmp(*q, "BACKGROUND_RED"))
-            {
-                StartUp.dwFillAttribute |= BACKGROUND_RED;
-                StartUp.dwFlags |= STARTF_USEFILLATTRIBUTE;
-            }
-            
-        }
-        
-        pNewProc->pWin32Attrib->vSetStartupInfo(&StartUp);
-        
-        //no create an object capable of laucnhing win32 processes
-        pNewProc->pWin32Proc = NULL;
-        pNewProc->pWin32Proc = new XPCProcess(* pNewProc->pWin32Attrib);
-        
-        //go!
-        pNewProc->pWin32Proc->vResume();
-        
-    }
-    catch (XPCException & e)
-    {
-        if (pNewProc->pWin32Attrib != NULL)
-        {
-            delete pNewProc->pWin32Attrib;
-        }
-        if (pNewProc->pWin32Proc != NULL)
-        {
-            delete pNewProc->pWin32Proc;
-        }
-       	MOOSTrace("*** %s Launch Failed:***\n\a\a", pNewProc->m_sApp.c_str());
-       	MOOSTrace("%s\n", e.sGetException());
-        return false;
-    }
-    
-    return true;
-    
-}
-#else
-
-bool CAntler::DoNixOSLaunch(CAntler::MOOSProc * pNewProc)
-{
-    
-    //make a child process
-    pNewProc->m_ChildPID = fork();
-    if (pNewProc->m_ChildPID < 0)
-    {
-        //hell!
-        MOOSTrace("fork failed, not good\n");
-        return false;
-    }
-
-    if (pNewProc->m_ChildPID == 0)
-    {
-        //I'm the child now..
-        
-        STRING_LIST::iterator p = pNewProc->m_ConsoleLaunchParameters.begin();
-	unsigned int nExecParams = pNewProc->m_ConsoleLaunchParameters.size()
-            + pNewProc->m_ExtraCommandLineParameters.size() + 6;
-        const char ** pExecVParams = new const char* [nExecParams];
-        int i = 0;
-        
-        //do we need to configure an xterm?
-        if (pNewProc->m_bNewConsole)
-        {
-            pExecVParams[i++] = DEFAULT_NIX_TERMINAL; 
-            if (!pNewProc->m_ConsoleLaunchParameters.empty())
-            {
-                while (p != pNewProc->m_ConsoleLaunchParameters.end())
-                {
-                    pExecVParams[i++] = (p++->c_str());
-                }
-            }
-            
-            pExecVParams[i++] = "-e";
-            
-        }
-        
-        //here we fill in the process name we really care about
-        pExecVParams[i++] = (pNewProc->m_sApp.c_str()) ;
-        if (!pNewProc->m_bInhibitMOOSParams)
-        {
-            //we do the usual thing of supplying Mission file and MOOSName
-            pExecVParams[i++] = pNewProc->m_sMissionFile.c_str(); 
-            pExecVParams[i++] = pNewProc->m_sMOOSName.c_str(); 
-        }
-        
-        
-        //here we pass extra parameters to the MOOS process if required
-        for (p = pNewProc->m_ExtraCommandLineParameters.begin();
-             p != pNewProc->m_ExtraCommandLineParameters.end();
-             p++)
-        {
-            pExecVParams[i++] = (p->c_str());
-        }
-        
-        //terminate list
-        pExecVParams[i++] = NULL;
-#if(DEBUG_LAUNCH)
-        for (int j = 0; j < i; j++)
-            MOOSTrace("argv[%d]:\"%s\"\n", j, pExecVParams[j]);
-#endif
-        
-        //and finally replace ourselves with a new xterm process image
-	char * const * pParamList = const_cast<char * const *> (pExecVParams);
-        if (execvp(pExecVParams[0], pParamList) == -1)
-        {
-            MOOSTrace("Failed exec - not good. Called exec as follows:\n");
-            exit(EXIT_FAILURE);
-            
-        }
-        
-    }
-    
-    //Parent execution stream continues here...
-    //we need to change the process group of the spawned process so that ctrl-C
-    //does get sent to all the launched xterms. Instead we will catch ctrl-C ourself
-    //and find the MOOS process running within the sub process, signal it to die
-    //so subprocesses can clean up nicely
-    if (m_bSupportGentleKill)
-        setpgid(pNewProc->m_ChildPID, 0);
-    
-    return true;
-}
-
-#endif
 

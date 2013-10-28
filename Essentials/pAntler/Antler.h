@@ -20,44 +20,12 @@
 #include <string>
 #include <iostream>
 
-#ifdef _WIN32
-#include "XPCProcess.h"
-#include "XPCProcessAttrib.h"
-#include "XPCException.h"
-#else
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <signal.h>
-#endif 
+#include "MOOSProc.h"
 
-#define DEFAULT_NIX_TERMINAL "xterm"
 #define DEFAULTTIMEBETWEENSPAWN 1000
-
 
 class CAntler 
 {
-public:
-        
-    //something to hold alient process information for the Antler class
-    struct MOOSProc
-    {
-#ifdef _WIN32
-        XPCProcess * pWin32Proc;
-        XPCProcessAttrib * pWin32Attrib;
-#else
-        pid_t m_ChildPID;
-#endif        
-        std::string m_sApp;
-        std::string m_sMOOSName;
-        std::string m_sMissionFile;
-        bool m_bInhibitMOOSParams;
-        bool m_bNewConsole;
-        STRING_LIST m_ExtraCommandLineParameters;
-        STRING_LIST m_ConsoleLaunchParameters;
-            
-    };
-        
 public:
         
     //constructor
@@ -75,6 +43,15 @@ public:
         TERSE,
         CHATTY,
     };
+
+    enum LAUNCH_TYPE
+    {
+        L_UNDEF,
+        L_PROCESS,
+        L_CONSOLE,
+        L_SCREEN // GNU screen, not X11
+    };
+
     bool SetVerbosity(VERBOSITY_LEVEL eLevel);
 		
     //call this to cause a clean shut down 
@@ -87,28 +64,9 @@ protected:
         
         
     //create, configure and launch a process
-    MOOSProc* CreateMOOSProcess(std:: string sProcName);
+    CMOOSProc* CreateMOOSProcess(std:: string sProcName);
         
-    // called to figure out what xterm parameters should be used with launch 
-    // (ie where should the xterm be and how should it look)
-    bool MakeConsoleLaunchParams(std::string sParam,
-                                 STRING_LIST & LaunchList,
-                                 std::string sProcName,
-                                 std::string sMOOSName);
-        
-    //caled to figure out what if any additional parameters 
-    //should be passed to the process being launched	
-    bool MakeExtraExecutableParameters(std::string sParam,
-                                       STRING_LIST & ExtraCommandLineParameters,
-                                       std::string sProcName,
-                                       std::string sMOOSName);
-        
-    //Functions responsible for actually start new processes according to OS
-#ifndef _WIN32
-    bool DoNixOSLaunch(MOOSProc * pNewProc);
-#else
-    bool DoWin32Launch(MOOSProc *pNewProc);
-#endif
+
     bool ConfigureMOOSComms();
     bool SendMissionFile();
         
@@ -116,7 +74,7 @@ protected:
     bool PublishProcessQuit(const std::string & sProc);
     bool PublishProcessLaunch(const std::string & sProc);
         
-    typedef std::list<MOOSProc*> MOOSPROC_LIST;
+    typedef std::list<CMOOSProc*> MOOSPROC_LIST;
     MOOSPROC_LIST    m_ProcList;
     std::string m_sDefaultExecutablePath;
     CProcessConfigReader m_MissionReader;
@@ -154,9 +112,6 @@ protected:
     /** goodby MOOSDB*/
     bool OnMOOSDisconnect();
 		
-    /** Kill a process gently */
-    bool KillNicely(MOOSProc* pProc);
-        
     CMOOSLock m_JobLock;
     std::string m_sMissionFile;
     bool m_bHeadless;
