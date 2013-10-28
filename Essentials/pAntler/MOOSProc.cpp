@@ -467,7 +467,7 @@ bool CMOOSProcScreenNix::StartSpecific()
 {
     // screen -dmS <sessionname> <commandline>
     m_FullCommandLine.push_back("screen");
-    m_FullCommandLine.push_back("-dmS");
+    m_FullCommandLine.push_back("-DmS");
     m_FullCommandLine.push_back(m_cfg.m_sMOOSName);
 
     m_FullCommandLine.splice(m_FullCommandLine.end(), m_ScreenLaunchParameters);
