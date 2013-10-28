@@ -616,7 +616,6 @@ CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
     //finally spawn each according to his own
     if (pNewProc->Start(m_bSupportGentleKill))
     {
-        ++m_nCurrentLaunch;
         return pNewProc;
     }
     else
