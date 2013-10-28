@@ -174,6 +174,8 @@ public:
     virtual bool IsStopped();
 
 protected:
+    // for all *nix processes, this will be the master arg list 
+    // that gets converted into the execvp arg list
     STRING_LIST m_FullCommandLine;
 };
 
@@ -203,6 +205,7 @@ public:
     virtual bool StopSpecific(bool bGentle);
 
 protected:
+    // parameters specifically for an xterm launch, preceding the "-e"
     STRING_LIST m_ConsoleLaunchParameters;
 };
 
@@ -219,6 +222,7 @@ public:
     virtual bool StopSpecific(bool bGentle);
 
 protected:
+    // parameters specifically for a screen launch, preceding the command (and args)
     STRING_LIST m_ScreenLaunchParameters;
 };
 

@@ -137,7 +137,7 @@ bool CMOOSProcConsoleWin32::BuildConfigSpecific2()
         //OK look for this configuration string
         if (!m_MissionReader->GetConfigurationParam(sLaunchConfigurationName, 
                                                     sLaunchConfiguration))
-            return MOOSFail("   warning: could not find resource string called \"%s\"",
+            return MOOSFail("   warning: could not find resource string called \"%s\"\n",
                             sLaunchConfigurationName.c_str()) ;
 
         // which is ridiculous, because we can't do anything with it
@@ -270,7 +270,7 @@ bool CMOOSProcConsoleNix::BuildConfigSpecific()
         //OK look for this configuration string
         if (!m_MissionReader->GetConfigurationParam(sLaunchConfigurationName, 
                                                     sLaunchConfiguration))
-            return MOOSFail("   warning: could not find resource string called \"%s\"",
+            return MOOSFail("   warning: could not find resource string called \"%s\"\n",
                             sLaunchConfigurationName.c_str()) ;
     }
     else
@@ -322,6 +322,30 @@ bool CMOOSProcConsoleNix::BuildConfigSpecific()
 
 bool CMOOSProcScreenNix::BuildConfigSpecific()
 {
+    string sLaunchConfigurationName;
+    string sLaunchConfiguration;
+
+    
+    if (m_cfg.GetParamValue("ScreenConfig", sLaunchConfigurationName))
+    {
+        //OK look for this configuration string
+        // likely they would add -L for loggging, or -l/-ln for shell login options
+        if (!m_MissionReader->GetConfigurationParam(sLaunchConfigurationName, 
+                                                    sLaunchConfiguration))
+            return MOOSFail("   warning: could not find resource string called \"%s\"\n",
+                            sLaunchConfigurationName.c_str()) ;
+    }
+    
+    //OK now simply chomp our way through a space delimited list...
+    while (!sLaunchConfiguration.empty())
+    {
+        MOOSTrimWhiteSpace(sLaunchConfiguration);
+        // convert commas to spaces
+        string sP = MOOSChomp(sLaunchConfiguration, ",");
+        MOOSTrimWhiteSpace(sP);
+        if (!sP.empty())
+            m_ScreenLaunchParameters.push_back(sP);
+    }
     return true;
 }
 
@@ -441,6 +465,28 @@ bool CMOOSProcConsoleNix::StartSpecific()
 
 bool CMOOSProcScreenNix::StartSpecific()
 {
+    // screen -dmS <sessionname> <commandline>
+    m_FullCommandLine.push_back("screen");
+    m_FullCommandLine.push_back("-dmS");
+    m_FullCommandLine.push_back(m_cfg.m_sMOOSName);
+
+    m_FullCommandLine.splice(m_FullCommandLine.end(), m_ScreenLaunchParameters);
+        
+
+    // this is the same as the plain-vanilla nix launch
+    m_FullCommandLine.push_back(m_cfg.m_sAppPath);
+    
+    if (!this->m_bInhibitMOOSParams)
+    {
+        //we do the usual thing of supplying Mission file and MOOSName
+        
+        m_FullCommandLine.push_back(this->MissionFile());
+        m_FullCommandLine.push_back(m_cfg.m_sMOOSName); 
+    }
+    
+    //here we pass extra parameters to the MOOS process if required
+    m_FullCommandLine.splice(m_FullCommandLine.end(), m_CommandLineParameters);
+    
     return true;
 }
 
@@ -501,6 +547,38 @@ bool CMOOSProcConsoleNix::StopSpecific(bool bGentle)
 
 bool CMOOSProcScreenNix::StopSpecific(bool bGentle)
 {
+    if (bGentle)
+    {
+        kill(m_ChildPID, SIGTERM);
+    }
+    else
+    {
+        //we need to be crafty....
+        string sCmd = "ps -e -o ppid= -o pid=";
+	
+        FILE* In = popen(sCmd.c_str(), "r");
+	
+        if (In == NULL) return false;
+        
+        bool bFound = false;
+        char Line[256];
+        while (fgets(Line, sizeof(Line), In))
+        {
+            stringstream L(Line);
+            int ppid, pid;
+            L >> ppid;
+            L >> pid;
+            
+            if (m_ChildPID == ppid)
+            {
+                kill(pid, SIGTERM);
+                bFound = true;
+            }
+        }	
+        pclose(In);
+        return bFound;
+    }
+
     return true;
 }
 
