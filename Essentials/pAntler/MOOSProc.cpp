@@ -1,7 +1,5 @@
 #include "MOOSProc.h"
 
-#define DEBUG_LAUNCH 0
-
 
 using namespace std;
 
@@ -41,6 +39,10 @@ bool CProcCfg::GetParamValue(string sParam, string &sValue)
 // fully parse the config, looking up all references to alternate configs
 bool CMOOSProc::BuildConfig()
 {
+    // whether to debug the launch
+    m_bDebugLaunch = false;
+    m_MissionReader->GetConfigurationParam("DebugLaunch", m_bDebugLaunch);
+    
 
     // Look for a line containing additional command line params (ExtraProcessParams)
     m_CommandLineParameters.clear();
@@ -388,7 +390,7 @@ bool CMOOSProcNixBase::Start(bool bGentle)
         
         //terminate list
         pExecVParams[i++] = NULL;
-        if(DEBUG_LAUNCH)
+        if(m_bDebugLaunch)
         {
             for (int j = 0; j < i; j++)
                 MOOSTrace("argv[%d]:\"%s\"\n", j, pExecVParams[j]);

@@ -92,6 +92,7 @@ protected:
     CProcessConfigReader* m_MissionReader;
 
     // settings from more in-depth parsing
+    bool m_bDebugLaunch;
     bool m_bInhibitMOOSParams;
     STRING_LIST m_CommandLineParameters;
 
