@@ -1,6 +1,6 @@
 ProcessConfig = ANTLER
 {
-  MSBetweenLaunches = 100
+  MSBetweenLaunches = 1000
 
   DebugLaunch = false
 
