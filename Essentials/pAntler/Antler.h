@@ -24,6 +24,8 @@
 
 #define DEFAULTTIMEBETWEENSPAWN 1000
 
+using namespace std;
+
 class CAntler 
 {
 public:
@@ -31,11 +33,11 @@ public:
     //constructor
     CAntler();
     //this is the only public function. Call it to have Antler do its thing.
-    bool Run(const std::string & sMissionFile,
-             std::set<std::string> Filter = std::set<std::string>() );
+    bool Run(const string & sMissionFile,
+             set<string> Filter = set<string>() );
         
     //run in a headless fashion - instructions will be recieved via MOOSComms
-    bool Run(const std::string & sHost,  int lPort, const std::string & sAntlerName);
+    bool Run(const string & sHost,  int lPort, const string & sAntlerName);
 		
     enum VERBOSITY_LEVEL
     {
@@ -60,27 +62,27 @@ public:
 protected:
         
     //top level spawn - all comes from here
-    bool Spawn(const std::string & sMissionFile, bool bHeadless = false);
+    bool Spawn(const string & sMissionFile, bool bHeadless = false);
         
         
     //create, configure and launch a process
-    CMOOSProc* CreateMOOSProcess(std:: string sProcName);
+    CMOOSProc* CreateMOOSProcess( string sProcName);
         
 
     bool ConfigureMOOSComms();
     bool SendMissionFile();
         
     //tell a Monarch what is goinon remotely
-    bool PublishProcessQuit(const std::string & sProc);
-    bool PublishProcessLaunch(const std::string & sProc);
+    bool PublishProcessQuit(const string & sProc);
+    bool PublishProcessLaunch(const string & sProc);
         
-    typedef std::list<CMOOSProc*> MOOSPROC_LIST;
+    typedef list<CMOOSProc*> MOOSPROC_LIST;
     MOOSPROC_LIST    m_ProcList;
-    std::string m_sDefaultExecutablePath;
+    string m_sDefaultExecutablePath;
     CProcessConfigReader m_MissionReader;
         
     //if this set is non empty then only procs listed here will be run..
-    std::set<std::string> m_Filter;
+    set<string> m_Filter;
         
     int m_nCurrentLaunch;
         
@@ -113,17 +115,17 @@ protected:
     bool OnMOOSDisconnect();
 		
     CMOOSLock m_JobLock;
-    std::string m_sMissionFile;
+    string m_sMissionFile;
     bool m_bHeadless;
     bool m_bQuitCurrentJob;
     bool m_bSupportGentleKill;
     bool m_bRunning;
     bool m_bNewJob;
-    std::string m_sMonarchAntler;
+    string m_sMonarchAntler;
     bool m_bKillOnDBDisconnect;
-    std::string m_sReceivedMissionFile;
-    std::string m_sAntlerName;
-    std::string m_sDBHost;
+    string m_sReceivedMissionFile;
+    string m_sAntlerName;
+    string m_sDBHost;
     int m_nDBPort;
         
     VERBOSITY_LEVEL m_eVerbosity;
