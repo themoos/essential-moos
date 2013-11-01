@@ -30,6 +30,6 @@ ProcessConfig = ANTLER
 
   Run = screen @ InhibitMOOSParams=true, ExtraProcessParams=screensummary,Xconfig=screenconsole,LaunchType=Console ~ screen-summary
   screensummary = -ls
-  screenconsole = -hold
+  screenconsole = -hold,-geometry,120x20+0+20
 
 }
