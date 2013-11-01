@@ -447,9 +447,10 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
                 //this a really important bit of text most folk will want to see it...
                 InhibitMOOSTraceInThisThread(m_eVerbosity == QUIET);
                 {
-                    MOOSTrace("   [%.3d] Process: %-15s has quit\n",
+                    MOOSTrace("   [%.3d] Process: %-15s ~ %-15s has quit\n",
                               --m_nCurrentLaunch,
-                              pMOOSProc->GetAppName().c_str());
+                              pMOOSProc->GetAppName().c_str(),
+                              pMOOSProc->GetMOOSName().c_str());
                 }
                 InhibitMOOSTraceInThisThread(m_eVerbosity != CHATTY);
 
@@ -643,7 +644,9 @@ bool CAntler::ShutDown()
 #ifndef _WIN32
 			
             int nStatus = 0;
-            MOOSTrace("\n   Signalling %-15s ", pMOOSProc->GetAppName().c_str());
+            MOOSTrace("\n   Signalling %-15s ~ %-15s", 
+                      pMOOSProc->GetAppName().c_str(),
+                      pMOOSProc->GetMOOSName().c_str());
             if (0 < waitpid(pMOOSProc->GetChildPID(), &nStatus, 0))
             {
                 MOOSTrace("[OK]");
