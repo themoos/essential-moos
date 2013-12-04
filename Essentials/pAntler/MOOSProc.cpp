@@ -62,6 +62,7 @@ bool CMOOSProc::BuildConfig()
     }
     
     // Inhibit MOOS params?
+    m_bInhibitMOOSParams = false;
     MOOSValFromString(m_bInhibitMOOSParams, m_cfg.m_sParams, "InhibitMOOSParams", true);
 
     //by default process are assumed to be on the system path
