@@ -38,7 +38,7 @@ public:
         
     //run in a headless fashion - instructions will be recieved via MOOSComms
     bool Run(const string & sHost,  int lPort, const string & sAntlerName);
-		
+
     enum VERBOSITY_LEVEL
     {
         QUIET,
@@ -55,10 +55,10 @@ public:
     };
 
     bool SetVerbosity(VERBOSITY_LEVEL eLevel);
-		
+
     //call this to cause a clean shut down 
     bool ShutDown();
-						  
+
 protected:
         
     //top level spawn - all comes from here
@@ -113,7 +113,7 @@ protected:
     bool OnMOOSConnect();
     /** goodby MOOSDB*/
     bool OnMOOSDisconnect();
-		
+
     CMOOSLock m_JobLock;
     string m_sMissionFile;
     bool m_bHeadless;

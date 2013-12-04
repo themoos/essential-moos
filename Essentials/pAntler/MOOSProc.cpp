@@ -228,8 +228,8 @@ bool CMOOSProcWin32::Start(bool bGentle)
         {
             delete this->m_pWin32Proc;
         }
-       	MOOSTrace("*** %s Launch Failed:***\n\a\a", this->m_sApp.c_str());
-       	MOOSTrace("%s\n", e.sGetException());
+        MOOSTrace("*** %s Launch Failed:***\n\a\a", this->m_sApp.c_str());
+        MOOSTrace("%s\n", e.sGetException());
         return false;
     }
     
@@ -398,7 +398,7 @@ bool CMOOSProcNixBase::Start(bool bGentle)
         }
         
         //and finally replace ourselves with a new xterm process image
-	char * const * pParamList = const_cast<char * const *> (pExecVParams);
+        char * const * pParamList = const_cast<char * const *> (pExecVParams);
         if (execvp(pExecVParams[0], pParamList) == -1)
         {
             MOOSTrace("Failed exec - not good. Called exec as follows:\n");
@@ -521,9 +521,9 @@ bool CMOOSProcConsoleNix::StopSpecific(bool bGentle)
     {
         //we need to be crafty....
         string sCmd = "ps -e -o ppid= -o pid=";
-	
+    
         FILE* In = popen(sCmd.c_str(), "r");
-	
+    
         if (In == NULL) return false;
         
         bool bFound = false;
@@ -540,7 +540,7 @@ bool CMOOSProcConsoleNix::StopSpecific(bool bGentle)
                 kill(pid, SIGTERM);
                 bFound = true;
             }
-        }	
+        }    
         pclose(In);
         return bFound;
     }
@@ -558,9 +558,9 @@ bool CMOOSProcScreenNix::StopSpecific(bool bGentle)
     {
         //we need to be crafty....
         string sCmd = "ps -e -o ppid= -o pid=";
-	
+    
         FILE* In = popen(sCmd.c_str(), "r");
-	
+    
         if (In == NULL) return false;
         
         bool bFound = false;
@@ -577,7 +577,7 @@ bool CMOOSProcScreenNix::StopSpecific(bool bGentle)
                 kill(pid, SIGTERM);
                 bFound = true;
             }
-        }	
+        }
         pclose(In);
         return bFound;
     }

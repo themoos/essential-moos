@@ -175,7 +175,6 @@ bool CAntler::SetVerbosity(VERBOSITY_LEVEL eLevel)
         InhibitMOOSTraceInThisThread(true);
         if (m_pMOOSComms != NULL)
             m_pMOOSComms->SetQuiet(true);
-			
     }
     return true;
 }
@@ -356,11 +355,10 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
         
     }
     
-	
     //are we being ask to support gentle process killing?
     m_MissionReader.GetConfigurationParam("GentleKill", m_bSupportGentleKill);
-	
-	
+
+
     //now cycle through each line in the configuration block. 
     // If it begins with run then it means launch
     for (p = sParams.begin(); p != sParams.end(); p++)
@@ -387,7 +385,7 @@ bool CAntler::Spawn(const std::string &  sMissionFile, bool bHeadless)
                               pNew->GetMOOSName().c_str());
                 }
                 InhibitMOOSTraceInThisThread(m_eVerbosity != CHATTY);
-				
+
                 m_ProcList.push_front(pNew);
                 m_nCurrentLaunch++;
                 PublishProcessLaunch(pNew->GetAppName());
@@ -629,7 +627,7 @@ CMOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
 
 bool CAntler::ShutDown()
 {
-	
+
     MOOSPROC_LIST::iterator q;
 
     MOOSTrace("\n\n|***** Shutdown *****|\n\n");
@@ -640,9 +638,9 @@ bool CAntler::ShutDown()
 
         if (pMOOSProc->Stop(m_bSupportGentleKill))
         {
-	 
+
 #ifndef _WIN32
-			
+
             int nStatus = 0;
             MOOSTrace("\n   Signalling %-15s ~ %-15s", 
                       pMOOSProc->GetAppName().c_str(),
@@ -650,15 +648,13 @@ bool CAntler::ShutDown()
             if (0 < waitpid(pMOOSProc->GetChildPID(), &nStatus, 0))
             {
                 MOOSTrace("[OK]");
-            }		
+            }
 #endif
         }
 
     }
-	
+
     MOOSTrace("\n\n   All spawned processes shutdown.\n\n   That was the MOOS \n\n");
-	 
-	 
+
     return true;
 }
-
