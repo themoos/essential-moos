@@ -30,6 +30,12 @@
 // MOOSCommunity.cpp: implementation of the CMOOSCommunity class.
 //
 //////////////////////////////////////////////////////////////////////
+
+// JLBC: Avoid winsock2 conflict by including it now:
+#ifdef _WIN32
+    #include <winsock2.h>
+#endif
+
 #include "MOOSCommunity.h"
 #include "MOOS/libMOOS/MOOSLib.h"
 

@@ -4,9 +4,21 @@
  *  Created on: Aug 26, 2012
  *      Author: pnewman
  */
-#include <ifaddrs.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#ifdef _WIN32
+#	ifndef _WIN32_WINNT
+#		define _WIN32_WINNT 0x0600 //will only work with vista and above as XP does not support IPv6
+#	endif
+#	include <winsock2.h>
+#	ifdef NTDDI_VERSION
+#		undef NTDDI_VERSION
+#	endif
+#	define NTDDI_VERSION NTDDI_VISTA
+#	include <Ws2tcpip.h>
+#else
+#	include <ifaddrs.h>
+#	include <arpa/inet.h>
+#	include <netdb.h>
+#endif
 
 #include <map>
 #include <stdexcept>
@@ -1021,7 +1033,7 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 		}
 
 		//send here
-		if (sendto(relevant_socket.socket_fd, buffer.data(), buffer.size(), 0,
+		if (sendto(relevant_socket.socket_fd, (const char*)buffer.data(), buffer.size(), 0,
 				(struct sockaddr*) (&relevant_socket.sock_addr),
 				sizeof(relevant_socket.sock_addr)) < 0)
 		{
@@ -1066,7 +1078,7 @@ bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 
 	int reuse = 1;
 	if (setsockopt(new_socket.socket_fd, SOL_SOCKET, SO_REUSEADDR,
-		&reuse, sizeof(reuse)) == -1)
+		(const char*)&reuse, sizeof(reuse)) == -1)
 	throw std::runtime_error("failed to set resuse socket option");
 /*
 	if (setsockopt(new_socket.socket_fd, SOL_SOCKET, SO_REUSEPORT,
@@ -1076,7 +1088,7 @@ bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 	int send_buffer_size = 4 * 64 * 1024;
 	if (setsockopt(new_socket.socket_fd,
 			SOL_SOCKET, SO_SNDBUF,
-			&send_buffer_size,
+			(const char*)&send_buffer_size,
 			sizeof(send_buffer_size)) == -1)
 	{
 		throw std::runtime_error("failed to set size of socket send buffer");
@@ -1101,11 +1113,20 @@ bool Share::Impl::AddOutputRoute(MOOS::IPV4Address address, bool multicast)
 
 	std::string dotted_ip = MOOS::IPV4Address::GetNumericAddress(new_socket.address.host());
 
-	if(inet_aton(dotted_ip.c_str(), &new_socket.sock_addr.sin_addr)==0)
-	{
-		throw std::runtime_error("failed to intepret "
-				+dotted_ip+" as an ip address");
-	}
+#ifdef UNIX
+    if(inet_aton(dotted_ip.c_str(), &new_socket.sock_addr.sin_addr)==0)
+    {
+        throw std::runtime_error("failed to intepret "
+                +dotted_ip+" as an ip address");
+    }
+#elif _WIN32
+	if( InetPtonA(AF_INET,dotted_ip.c_str(), &new_socket.sock_addr.sin_addr)==0)
+    {
+        throw std::runtime_error("failed to intepret "
+                +dotted_ip+" as an ip address");
+    }
+#endif
+
 
 	//new_socket.sock_addr.sin_addr.s_addr = inet_addr(new_socket.address.ip_num.c_str());
 	new_socket.sock_addr.sin_port = htons(new_socket.address.port());
