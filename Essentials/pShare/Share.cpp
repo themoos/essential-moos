@@ -80,11 +80,13 @@ protected:
 	bool AddRoute(const std::string & src_name,
 				const std::string & dest_name,
 				MOOS::IPV4Address address,
-				bool multicast);
+				bool multicast,
+				double period);
 
 	bool  AddMulticastAliasRoute(const std::string & src_name,
 					const std::string & dest_name,
-					unsigned int channel_num);
+					unsigned int channel_num,
+					double period);
 
 	MOOS::IPV4Address GetAddressFromChannelAlias(unsigned int channel_number) const;
 
@@ -118,6 +120,8 @@ private:
 
 	//teh address form which we count
 	MOOS::IPV4Address base_address_;
+
+	bool verbose_;
 
 
 };
@@ -196,6 +200,8 @@ bool Share::Impl::OnProcessCommandLine()
 {
 	base_address_.set_host  (DEFAULT_MULTICAST_GROUP_ADDRESS);
 	base_address_.set_port (DEFAULT_MULTICAST_GROUP_PORT);
+
+	verbose_ = m_CommandLineParser.GetFlag("--verbose");
 
 	std::string sVar;
 	if(m_CommandLineParser.GetVariable("-o",sVar))
@@ -299,6 +305,9 @@ bool Share::Impl::OnStartUp()
 	return true;
 }
 
+test in configuration file
+update docs
+
 bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuration_string, bool is_output)
 {
 
@@ -309,11 +318,19 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 	if(is_output)
 	{
-		//X->Y:165.45.3.61:9000 & Z:multicast_8
+		//X->Y:165.45.3.61:9000@0.1 & Z:multicast_8
 		std::string src_name = MOOS::Chomp(configuration_string,"->");
 		while(!configuration_string.empty())
 		{
-			std::string route_description = trim(MOOS::Chomp(configuration_string,"&"));
+			std::string whole_route_description = trim(MOOS::Chomp(configuration_string,"&"));
+
+            //look for a @period
+			std::string route_description = MOOS::Chomp(whole_route_description,"@");
+			std::string sPeriod = whole_route_description;
+            if(sPeriod.empty() || !MOOSIsNumeric(sPeriod) )
+                sPeriod="0.0";
+
+
 			std::list<std::string> parts;
 
 			if(route_description.find(":")==std::string ::npos)
@@ -326,6 +343,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 			{
 				parts.push_back(MOOS::Chomp(route_description,":"));
 			}
+
 
 
 
@@ -355,6 +373,8 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 				MOOSAddValToString(io,"src_name",src_name);
 				MOOSAddValToString(io,"dest_name",dest_name);
 				MOOSAddValToString(io,"route",destination);
+				MOOSAddValToString(io,"period",sPeriod);
+
 				try
 				{
 					ProcessIOConfigurationString(io,true);
@@ -394,6 +414,8 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 				MOOSAddValToString(io,"src_name",src_name);
 				MOOSAddValToString(io,"dest_name",dest_name);
 				MOOSAddValToString(io,"route",multicast_channel);
+                MOOSAddValToString(io,"period",sPeriod);
+
 
 				try
 				{
@@ -462,6 +484,9 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 	//bDelete=false;
 	//MOOSValFromString(bDelete,configuration_string,"delete");
 
+	double period = 0.0;
+	MOOSValFromString(period,configuration_string,"period");
+
 	while (!routes.empty()) {
 		//look for a space separated list of routes...
 		std::string route = MOOSChomp(routes, "&");
@@ -481,7 +506,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 			if (is_output)
 			{
 				if (!AddMulticastAliasRoute(src_name, dest_name,
-						channel_num))
+						channel_num,period))
 					return false;
 			}
 			else
@@ -498,7 +523,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 			if (is_output)
 			{
-				if (!AddRoute(src_name, dest_name, route_address, false))
+				if (!AddRoute(src_name, dest_name, route_address, false,period))
 					return false;
 			}
 			else
@@ -527,6 +552,10 @@ bool Share::Impl::Iterate()
 			if(!m_Comms.IsRegisteredFor(new_msg.GetKey()))
 			{
 				m_Comms.Post(new_msg,true);
+				if(verbose_)
+				{
+				    std::cout<<"forwarding share of \""<<new_msg.GetName()<<"\" from "<<new_msg.m_sSrc<<std::endl;
+				}
 			}
 		}
 	}
@@ -631,16 +660,18 @@ bool Share::Impl::OnNewMail(MOOSMSG_LIST & new_mail)
 
 bool  Share::Impl::AddMulticastAliasRoute(const std::string & src_name,
 				const std::string & dest_name,
-				unsigned int channel_num)
+				unsigned int channel_num,
+				double period)
 {
 	MOOS::IPV4Address alias_address = GetAddressFromChannelAlias(channel_num);
-	return AddRoute(src_name,dest_name,alias_address,true);
+	return AddRoute(src_name,dest_name,alias_address,true,period);
 }
 
 bool  Share::Impl::AddRoute(const std::string & src_name,
 				const std::string & dest_name,
 				MOOS::IPV4Address address,
-				bool multicast)
+				bool multicast,
+				double period)
 {
 
 	SocketMap::iterator mcg = socket_map_.find(address);
@@ -664,6 +695,7 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		route.src_name = trimed_src_name;
 		route.dest_address = address;
 		route.multicast = multicast;
+		route.period = period;
 
 		std::list<Route> & rlist = routing_table_[trimed_src_name];
 
@@ -823,6 +855,12 @@ void Share::Impl::PrintRoutes()
 				std::cout<<" ["<<GetChannelAliasFromMutlicastAddress(route.dest_address)<<"]";
 			else
 				std::cout<<" [udp]";
+
+			if(route.period==0.0)
+			    std::cout<<" every notification ";
+			else
+			    std::cout<<" @ " <<1.0/route.period <<"Hz";
+
 			std::cout<<std::endl;
 		}
 
@@ -986,11 +1024,17 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 	//we need to find the socket to send via
 	std::list<Route> & route_list = g->second;
 
+	double now = MOOS::Time();
+
 	std::list<Route>::iterator q;
 	for(q = route_list.begin();q!=route_list.end();q++)
 	{
 		//process every route
 		Route & route = *q;
+
+		if(now-route.last_time_sent<route.period)
+		    continue;
+
 		SocketMap::iterator mcg = socket_map_.find(route.dest_address);
 		if (mcg == socket_map_.end()) {
 			std::stringstream ss;
@@ -1001,6 +1045,10 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 		}
 
 		Socket & relevant_socket = mcg->second;
+
+
+        if(verbose_)
+            std::cout<<"sending \""<<msg.m_sKey<<"\" as \""<<route.dest_name<<"\" to "<<route.dest_address.to_string()<<"\n";
 
 		//rename here...
 		msg.m_sKey = route.dest_name;
@@ -1027,6 +1075,9 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 		{
 			throw std::runtime_error("failed \"sendto\"");
 		}
+
+
+		route.last_time_sent = now;
 	}
 
 	return true;

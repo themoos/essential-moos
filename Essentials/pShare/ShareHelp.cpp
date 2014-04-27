@@ -66,6 +66,7 @@ void ShareHelp::PrintHelp()
 			"switches:\n"
 			"  -o=<outputs>: specify outputs from command line\n"
 			"  -i=<inputs> : specify inputs from command line\n";
+	        "  --verbose   : verbose operation\n";
 
 
 	std::cout<<YELLOW<<"\nExamples:\n\n"<<NORMAL;

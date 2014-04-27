@@ -28,6 +28,8 @@ public:
 	std::string src_name;
 	bool multicast;
 	std::string to_string() const;
+	double period;
+	double last_time_sent;
 
 };
 
