@@ -28,7 +28,7 @@ public:
 	std::string src_name;
 	bool multicast;
 	std::string to_string() const;
-	double period;
+	double frequency;
 	double last_time_sent;
 
 };

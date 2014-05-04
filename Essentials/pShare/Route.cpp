@@ -12,7 +12,7 @@ namespace MOOS {
 Route::Route() {
 	// TODO Auto-generated constructor stub
     last_time_sent = 0.0;
-    period = 0.0;
+    frequency   = 0.0;
 }
 
 Route::~Route() {
@@ -27,7 +27,7 @@ std::string Route::to_string() const
 			<<"dest_name: "<<dest_name<<std::endl
 			<<"src_name: "<<src_name<<std::endl
 			<<"multicast: "<<multicast<<std::endl
-	        <<"period: "<<period<<std::endl;
+	        <<"frequency: "<<frequency<<std::endl;
 
 
 	return ss.str();
