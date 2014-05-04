@@ -122,6 +122,8 @@ private:
 	//teh address form which we count
 	MOOS::IPV4Address base_address_;
 
+	bool verbose_;
+
 
 };
 
@@ -265,6 +267,9 @@ bool Share::Impl::OnStartUp()
 		{
 			base_address_=IPV4Address(multicast_base);
 		}
+
+
+		verbose_ = GetFlagFromCommandLineOrConfigurationFile("verbose");
 
 		std::vector<std::string> outputs = GetRepeatedConfigurations("Output");
 		for(std::vector<std::string>::iterator q=outputs.begin();
@@ -1026,13 +1031,15 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 	//we need to find the socket to send via
 	std::list<Route> & route_list = g->second;
 
+	double now = MOOS::Time();
+
 	std::list<Route>::iterator q;
 	for(q = route_list.begin();q!=route_list.end();q++)
 	{
 		//process every route
 		Route & route = *q;
 
-		if(route.frequency>0.0 && now-route.last_time_sent<1.0/route.frequency)
+		if(route.frequency>0.0 && now-route.last_time_sent<(1.0/route.frequency))
 		    continue;
 
 		SocketMap::iterator mcg = socket_map_.find(route.dest_address);
@@ -1081,6 +1088,8 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 		{
 			throw std::runtime_error("failed \"sendto\"");
 		}
+
+		route.last_time_sent=now;
 	}
 
 	return true;
