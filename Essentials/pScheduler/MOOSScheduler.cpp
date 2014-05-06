@@ -372,10 +372,28 @@ bool CMOOSScheduler::CEvent::GetOutput(double dfTimeNow, MOOSMSG_LIST &Out)
         //set up next fire time
         m_dfFireTime+=m_dfPeriod;
 
-        CMOOSMsg Msg(    MOOS_NOTIFY,
+	CMOOSMsg *msg = NULL;
+	double fVal=0;
+	if ( ::sscanf(m_sVal.c_str(),"%lf",&fVal)==1)
+	{
+		// It's a double:
+        	msg = new CMOOSMsg(MOOS_NOTIFY,
+                        m_sName.c_str(),
+                        fVal,
+                        dfTimeNow);
+	}
+	else
+	{
+		// It's text:
+        	msg = new CMOOSMsg(MOOS_NOTIFY,
                         m_sName.c_str(),
                         m_sVal.c_str(),
                         dfTimeNow);
+
+	}
+
+        CMOOSMsg Msg = *msg;
+	delete msg;
 
         Out.push_front(Msg);
 
