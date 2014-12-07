@@ -29,7 +29,7 @@
 #include "ShareHelp.h"
 
 #define DEFAULT_MULTICAST_GROUP_ADDRESS "224.1.1.11"
-#define DEFAULT_MULTICAST_GROUP_PORT 90000
+#define DEFAULT_MULTICAST_GROUP_PORT 24460
 #define MAX_MULTICAST_CHANNELS 256
 #define MAX_UDP_SIZE 48*1024
 
@@ -200,9 +200,18 @@ std::vector<std::string>  Share::Impl::GetRepeatedConfigurations(const std::stri
 bool Share::Impl::OnProcessCommandLine()
 {
 	base_address_.set_host  (DEFAULT_MULTICAST_GROUP_ADDRESS);
-	base_address_.set_port (DEFAULT_MULTICAST_GROUP_PORT);
 
 	//verbose_ = m_CommandLineParser.GetFlag("--verbose");
+
+    uint16_t port = DEFAULT_MULTICAST_GROUP_PORT;
+    GetParameterFromCommandLineOrConfigurationFile("multicast_base_port",port);
+    base_address_.set_port (port);
+
+    std::string  address = DEFAULT_MULTICAST_GROUP_ADDRESS;
+    GetParameterFromCommandLineOrConfigurationFile("multicast_address",address);
+    base_address_.set_host (address);
+
+
 
 	verbose_ = GetFlagFromCommandLineOrConfigurationFile("verbose");
 
@@ -262,11 +271,11 @@ bool Share::Impl::OnStartUp()
 		*/
 
 
-		std::string multicast_base;
-		if(m_MissionReader.GetValue("multicast_base",multicast_base))
-		{
-			base_address_=IPV4Address(multicast_base);
-		}
+//		std::string multicast_base;
+//		if(m_MissionReader.GetValue("multicast_base",multicast_base))
+//		{
+//			base_address_=IPV4Address(multicast_base);
+//		}
 
 
 		verbose_ = GetFlagFromCommandLineOrConfigurationFile("verbose");
@@ -337,7 +346,7 @@ bool Share::Impl::ProcessShortHandIOConfigurationString(std::string configuratio
 
 			std::list<std::string> parts;
 
-			if(route_description.find(":")==std::string ::npos)
+            if(route_description.find(":")==std::string ::npos && (route_description.find("multicast_")==std::string::npos))
 			{
 				std::cerr<<RED<<"error: short hand failed to parse "<<copy_config
 													<<" not enough parts in route\n"<<NORMAL;
