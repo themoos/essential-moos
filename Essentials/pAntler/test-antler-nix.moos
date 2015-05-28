@@ -1,0 +1,35 @@
+ProcessConfig = ANTLER
+{
+  MSBetweenLaunches = 1000
+
+  DebugLaunch = false
+
+  Run = MOOSDB @ LaunchType=Screen
+  
+  Run = xmessage @ NewConsole = false,XConfig=xconfig1 ~ xmessage-moosfile-moosname
+ 
+  param_oldplaunch = launched,with,NewConsole=False
+  param_oldclaunch = launched,with,NewConsole=True
+  param_newplaunch = launched,with,LaunchType=Process
+  param_newclaunch = launched,with,LaunchType=Console
+  param_newslaunch = launched,with,LaunchType=Screen
+
+  Run = xmessage @ NewConsole = true,     InhibitMOOSParams=true,ExtraProcessParams=param_oldplaunch ~ xmessage-oldlaunch-process
+  Run = xmessage @ NewConsole = false,    InhibitMOOSParams=true,ExtraProcessParams=param_oldclaunch ~ xmessage-oldlaunch-console
+  Run = xmessage @ LaunchType = Process,  InhibitMOOSParams=true,ExtraProcessParams=param_newplaunch ~ xmessage-newlaunch-process
+  Run = xmessage @ LaunchType = Console,  InhibitMOOSParams=true,ExtraProcessParams=param_newclaunch ~ xmessage-newlaunch-console
+  Run = xmessage @ LaunchType = Screen,   InhibitMOOSParams=true,ExtraProcessParams=param_newslaunch ~ xmessage-newlaunch-screen
+
+  param_xconfig    = launched,with,xconfig
+  xconfig1 = -geometry,40x40+0+20
+  Run = xmessage @ LaunchType=Console,XConfig=xconfig1,ExtraProcessParams=param_xconfig ~ xmessage-xconfig
+  
+
+  Run = /usr/bin/xmessage @ InhibitMOOSParams=true, ExtraProcessParams=fullpath,NewConsole = false ~ xmessage-fullpath
+  fullpath = launched,with,full,path,to,executable
+
+  Run = screen @ InhibitMOOSParams=true, ExtraProcessParams=screensummary,Xconfig=screenconsole,LaunchType=Console ~ screen-summary
+  screensummary = -ls
+  screenconsole = -hold,-geometry,120x20+0+20
+
+}
