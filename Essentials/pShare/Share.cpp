@@ -203,8 +203,11 @@ bool Share::Impl::OnProcessCommandLine()
 
 	//verbose_ = m_CommandLineParser.GetFlag("--verbose");
 
-    uint16_t port = DEFAULT_MULTICAST_GROUP_PORT;
+    int port = DEFAULT_MULTICAST_GROUP_PORT;
     GetParameterFromCommandLineOrConfigurationFile("multicast_base_port",port);
+    if(port<0 || port > std::numeric_limits<uint16_t>::max())
+        return MOOSFail("multicast_base_port must be a unsigned 16 bit number");
+
     base_address_.set_port (port);
 
     std::string  address = DEFAULT_MULTICAST_GROUP_ADDRESS;
