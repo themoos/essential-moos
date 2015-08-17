@@ -10,6 +10,10 @@ include_directories( ${${EXECNAME}_INCLUDE_DIRS} ${MOOS_INCLUDE_DIRS} ${MOOS_DEP
 add_executable(${EXECNAME} ${SRCS} )
 target_link_libraries(${EXECNAME} ${MOOS_LIBRARIES} ${MOOS_DEPEND_LIBRARIES})
 
+IF (WIN32)
+	target_link_libraries(${EXECNAME} Ws2_32.lib)
+ENDIF(WIN32)
+
 INSTALL(TARGETS ${EXECNAME}
   RUNTIME DESTINATION bin
 )

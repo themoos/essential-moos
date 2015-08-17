@@ -659,7 +659,7 @@ bool CAntler::MakeConsoleLaunchParams(std::string sParam,STRING_LIST & LaunchLis
 
 CAntler::MOOSProc* CAntler::CreateMOOSProcess(string sConfiguration)
 {
-    
+	MOOSRemoveChars(sConfiguration," \t\r");
     
     //what tis its name? (if no @ symbol we just get the name and no cmdline)
     string sProcName = MOOSChomp(sConfiguration,"@");
