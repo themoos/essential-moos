@@ -13,6 +13,7 @@
 #include <string>
 #include <iomanip>
 #include <vector>
+#include <limits>
 
 #include "MOOS/libMOOS/Utils/MOOSUtilityFunctions.h"
 #include "MOOS/libMOOS/Utils/IPV4Address.h"
