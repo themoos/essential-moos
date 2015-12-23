@@ -124,6 +124,15 @@ CMOOSLogger::CMOOSLogger()
 	//by default do not indicate data tyep with a D: or S: suffix
 	m_bMarkDataType = false;
 
+    //by default, space header lines by 30 entries between
+    m_nSyncLogHeaderSpacing = 30;
+
+    //by default, insert intermediate headers into sync logs
+    m_bAddIntermediateHeaders = true;
+
+    //by default, replace stale variables with NaN
+    m_bIncludeStale = false;
+
     //lets always sort mail by time...
     SortMailByTime(true);
 
@@ -275,6 +284,12 @@ bool CMOOSLogger::OnStartUp()
     m_MissionReader.GetConfigurationParam("MarkExternalCommunityMessages",m_bMarkExternalCommunityMessages);
 
     m_MissionReader.GetConfigurationParam("MarkDataType",m_bMarkDataType);
+
+    m_MissionReader.GetConfigurationParam("SyncLogHeaderSpacing", m_nSyncLogHeaderSpacing);
+    
+    m_MissionReader.GetConfigurationParam("SyncLogIntermediateHeaders", m_bAddIntermediateHeaders);
+
+    m_MissionReader.GetConfigurationParam("IncludeStaleVariables", m_bIncludeStale);
 
     //do we have a path global name?
     if(!m_MissionReader.GetValue("GLOBALLOGPATH",m_sPath))
@@ -732,7 +747,7 @@ bool CMOOSLogger::DoSyncLog(double dfTimeNow)
             m_SyncLogFile<<setw(COLUMN_WIDTH);
 
             //has this variable changed since last time?
-            if(rVar.IsFresh())
+            if(rVar.IsFresh() || m_bIncludeStale)
             {
                 //we can only write doubles
                 if(rVar.IsDouble())
@@ -772,8 +787,11 @@ bool CMOOSLogger::DoSyncLog(double dfTimeNow)
     m_SyncLogFile<<endl;
 
     //every few lines put a comment in
-    if((m_nSyncLines++)%30==0)
-        LabelSyncColumns();
+    if (m_bAddIntermediateHeaders) 
+    {
+        if((m_nSyncLines++)%m_nSyncLogHeaderSpacing==0)
+            LabelSyncColumns();
+    }
 
     return true;
 }
