@@ -23,9 +23,10 @@ init:
     - cd ..
     - git clone --depth=1 https://github.com/msis/core-moos
     - cd core-moos
+    - git checkout wOnlineCI
     - mkdir build
     - cd build
-    - cmake -G "%VS_FULL%" -DENABLE_EXPORT=ON -DUSE_ASYNC_COMMS=ON -DTIME_WARP_AGGLOMERATION=0.4 -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../
+    - cmake -G "%VS_FULL%" -DENABLE_EXPORT=ON -DUSE_ASYNC_COMMS=ON -DTIME_WARP_AGGLOMERATION=0.4 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} /w" ../
     - cmake --build . --config Release
     - cmake --build . --config Release --target install
     - cd %APPVEYOR_BUILD_FOLDER%
@@ -33,7 +34,7 @@ init:
 
 build_script:
     - cd build
-    - cmake -G "%VS_FULL%" -DBUILD_CONSOLE_TOOLS=ON -DBUILD_GRAPHICAL_TOOLS=ON -DBUILD_UPB=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../
+    - cmake -G "%VS_FULL%" -DBUILD_CONSOLE_TOOLS=ON -DBUILD_GRAPHICAL_TOOLS=ON -DBUILD_UPB=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} /w" ../
     - cmake --build . --config Release
 
 on_success:

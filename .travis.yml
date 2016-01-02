@@ -15,6 +15,7 @@ before_script:
     - cd ..
     - git clone --depth=1 https://github.com/msis/core-moos
     - cd core-moos
+    - git checkout wOnlineCI
     - mkdir build
     - cd build
     - cmake -DENABLE_EXPORT=ON -DUSE_ASYNC_COMMS=ON -DTIME_WARP_AGGLOMERATION=0.4 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_FLAGS=$MOOS_CXX_FLAGS ..
@@ -26,7 +27,7 @@ before_script:
 
 script:
     - cd build/
-    - cmake -DBUILD_CONSOLE_TOOLS=ON -DBUILD_GRAPHICAL_TOOLS=ON -DBUILD_UPB=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE ../
+    - cmake -DBUILD_CONSOLE_TOOLS=ON -DBUILD_GRAPHICAL_TOOLS=ON -DBUILD_UPB=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_FLAGS=$MOOS_CXX_FLAGS ../
     - cmake --build . --config Release
 
 after_script:
