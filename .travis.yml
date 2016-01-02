@@ -1,5 +1,7 @@
 language: cpp
 
+sudo: required
+
 os:
     - linux
     - osx
@@ -19,7 +21,7 @@ before_script:
     - cd build
     - cmake -DENABLE_EXPORT=ON -DUSE_ASYNC_COMMS=ON -DTIME_WARP_AGGLOMERATION=0.4 -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_FLAGS=$MOOS_CXX_FLAGS ..
     - cmake --build . --config Release
-    - cmake --build . --config Release --target install
+    - sudo cmake --build . --config Release --target install
     - cd $TRAVIS_BUILD_DIR
     - mkdir build/
 
@@ -30,4 +32,4 @@ script:
     - cmake --build . --config Release
 
 after_script:
-    - cmake --build . --config Release --target install
+    - sudo cmake --build . --config Release --target install
