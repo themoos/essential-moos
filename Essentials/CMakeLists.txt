@@ -1,4 +1,6 @@
-add_subdirectory(pMOOSBridge)
+IF (NOT WIN32)
+    add_subdirectory(pMOOSBridge)
+ENDIF (NOT WIN32)
 add_subdirectory(pAntler)
 add_subdirectory(pLogger)
 add_subdirectory(pScheduler)
