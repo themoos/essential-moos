@@ -1032,7 +1032,7 @@ bool CMOOSLogger::CreateDirectory(const std::string & sDirectory)
 {
 
 #if _WIN32
-    int bOK  = ::CreateDirectory(sDirectory.c_str(),NULL);
+    int bOK  = ::CreateDirectoryA(sDirectory.c_str(),NULL);
 
     if(!bOK)
     {
@@ -1042,7 +1042,7 @@ bool CMOOSLogger::CreateDirectory(const std::string & sDirectory)
         {
 
             LPVOID lpMsgBuf;
-            FormatMessage(
+            FormatMessageA(
                 FORMAT_MESSAGE_ALLOCATE_BUFFER |
                 FORMAT_MESSAGE_FROM_SYSTEM |
                 FORMAT_MESSAGE_IGNORE_INSERTS,

@@ -39,6 +39,11 @@
 #include <string>
 #include "Zipper.h"
 
+#if _WIN32
+    #include <windows.h>
+    #include <winbase.h>
+#endif // windows
+
 typedef std::vector<std::string> STRING_VECTOR; 
 
 class CMOOSLogger : public CMOOSApp  
