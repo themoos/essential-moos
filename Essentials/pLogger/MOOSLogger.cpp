@@ -698,7 +698,7 @@ std::string CMOOSLogger::MakeLogName(string sStem)
     {
         // Print local time as a string
 
-        sTmp = MOOSFormat( "%s_%d_%2d_%2d_____%.2d_%.2d_%.2d",
+        sTmp = MOOSFormat( "%s_%d_%02d_%02d_____%.2d_%.2d_%.2d",
             sStem.c_str(),
             Now->tm_year+1900,
             Now->tm_mon+1,
