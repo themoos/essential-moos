@@ -77,8 +77,8 @@ using namespace std;
 
 CMOOSLogger::CMOOSLogger()
 {
-	
-	
+
+
     //be default we don't need to be too fast..
     SetAppFreq(5);
 
@@ -111,7 +111,7 @@ CMOOSLogger::CMOOSLogger()
 
     //and append a time ot the stem
     m_bAppendFileTimeStamp = true;
-	
+
 	//by default use local time for directory names
 	m_bUseUTCLogNames = false;
 
@@ -120,9 +120,18 @@ CMOOSLogger::CMOOSLogger()
 
 	//by default to not mark (with a @) variables being sent from external communities
 	m_bMarkExternalCommunityMessages=  false;
-    
+
 	//by default do not indicate data tyep with a D: or S: suffix
 	m_bMarkDataType = false;
+
+    //by default, space header lines by 30 entries between
+    m_nSyncLogHeaderSpacing = 30;
+
+    //by default, insert intermediate headers into sync logs
+    m_bAddIntermediateHeaders = true;
+
+    //by default, replace stale variables with NaN
+    m_bIncludeStale = false;
 
     //lets always sort mail by time...
     SortMailByTime(true);
@@ -157,13 +166,13 @@ bool CMOOSLogger::CloseFiles()
     {
         m_SystemLogFile.close();
     }
-	
+
 	//crucially make sure teh zipping thread has stopped
 
 #ifdef ZLIB_FOUND
-	
+
 	m_AlogZipper.Stop();
-	
+
 	if(m_bUseExcludedLog)
 	{
 	   m_XlogZipper.Stop();
@@ -231,7 +240,7 @@ bool CMOOSLogger::OnStartUp()
     {
     	MOOSRemoveChars(sTmp," ");
     	string sBool = MOOSChomp(sTmp,"@");
-        
+
         m_bSynchronousLog = MOOSStrCmp(sBool,"TRUE");
 
         //look for an additional parameter saying how often to log...
@@ -252,29 +261,35 @@ bool CMOOSLogger::OnStartUp()
 
     //are we required to perform Asynchronous logs?
     m_MissionReader.GetConfigurationParam("ASYNCLOG",m_bAsynchronousLog);
-	
+
 	//are we required to run an exclusion log (which is where wildcard rejections can be sent
 	//for paranoid people
     m_MissionReader.GetConfigurationParam("WildcardExclusionLog",m_bUseExcludedLog);
-	
+
     //what sort of file name are we using
     m_MissionReader.GetConfigurationParam("FILETIMESTAMP",m_bAppendFileTimeStamp);
-	
+
 	//do we want to use UTC times in directory names
     m_MissionReader.GetConfigurationParam("UTCLogDirectories",m_bUseUTCLogNames);
-	
+
     //where should we write a summary of where we are logging to?
     m_sSummaryFile = "./.LastOpenedMOOSLogDirectory";
     m_MissionReader.GetConfigurationParam("LoggingDirectorySummaryFile",m_sSummaryFile);
-	
+
 	m_nDoublePrecision = DEFAULT_DOUBLE_PRECISION;
 	m_MissionReader.GetConfigurationParam("DoublePrecision",m_nDoublePrecision);
-	
+
     m_MissionReader.GetConfigurationParam("LogAuxSrc",m_bLogAuxSrc);
-	
+
     m_MissionReader.GetConfigurationParam("MarkExternalCommunityMessages",m_bMarkExternalCommunityMessages);
 
     m_MissionReader.GetConfigurationParam("MarkDataType",m_bMarkDataType);
+
+    m_MissionReader.GetConfigurationParam("SyncLogHeaderSpacing", m_nSyncLogHeaderSpacing);
+
+    m_MissionReader.GetConfigurationParam("SyncLogIntermediateHeaders", m_bAddIntermediateHeaders);
+
+    m_MissionReader.GetConfigurationParam("IncludeStaleVariables", m_bIncludeStale);
 
     //do we have a path global name?
     if(!m_MissionReader.GetValue("GLOBALLOGPATH",m_sPath))
@@ -308,7 +323,7 @@ bool CMOOSLogger::OnStartUp()
 	//do we want to do zip logging
 	m_bCompressAlog = false;
 	m_MissionReader.GetConfigurationParam("CompressAlogs",m_bCompressAlog);
-	
+
 	if(m_bCompressAlog)
 	{
 #ifndef ZLIB_FOUND
@@ -316,7 +331,7 @@ bool CMOOSLogger::OnStartUp()
 		MOOSTrace("warning:\n\talogs will not be compressed because zlib was not found at build time");
 #endif
 	}
-	
+
 
 
 
@@ -354,7 +369,7 @@ bool CMOOSLogger::ConfigureLogging()
                 std::string sNewVar;
                 HandleLogRequest(sParam,sNewVar);
             }
-            
+
         }
     }
     else
@@ -393,14 +408,14 @@ bool CMOOSLogger::ConfigureLogging()
 		m_bWildCardLogging = true;
 	}
 
-	
+
 	//what sort of things do we want to wild card log
     if(m_bWildCardLogging )
     {
-		
+
 		//we never want to log mission files sent between communities - this is done elsewhere
 		m_sWildCardOmitted.push_back("MISSION_FILE");
-		
+
 		//there was a request to allow multiple statements of the these patterns...hence the
 		//more  complicated parsing here
 		STRING_LIST sList;
@@ -413,7 +428,7 @@ bool CMOOSLogger::ConfigureLogging()
 				std::string sTok,sVal;
 				if(!CMOOSFileReader::GetTokenValPair(*q, sTok,sVal))
 					continue;
-				
+
 				if(MOOSStrCmp("WildCardPattern",sTok))
 				{
 					while(!sVal.empty())
@@ -430,8 +445,8 @@ bool CMOOSLogger::ConfigureLogging()
 				}
 			}
 		}
-		
-	    
+
+
         m_bAsynchronousLog = true;
     }
 
@@ -571,7 +586,7 @@ bool CMOOSLogger::HandleWildCardLogging()
 					bool bWouldNormallyReject = IsWildCardRejected(sVar);
 					bool bWouldNormallyAccept = IsWildCardAccepted(sVar);
 					bool bWanted = false;
-					
+
 					if(m_bUseExcludedLog)
 					{
 						bWanted = true;
@@ -580,14 +595,14 @@ bool CMOOSLogger::HandleWildCardLogging()
 							MOOSTrace("  Added wildcard logging of %-20s\n",sVar.c_str());
 							m_LogDestinations[sVar] = ALOG;
 						}
-						else 
+						else
 						{
 							MOOSTrace("  Added wildcard logging of %-20s  (xlog) \n",sVar.c_str());
 							m_LogDestinations[sVar] = XLOG;
-							
+
 						}
 					}
-				
+
 					else
 					{
 						if( bWouldNormallyAccept &&	!bWouldNormallyReject )
@@ -598,20 +613,20 @@ bool CMOOSLogger::HandleWildCardLogging()
 						}
 						else if(bWouldNormallyAccept && bWouldNormallyReject)
 						{
-							//MOOSTrace("  denied added wildcard logging of %-20s   (fits Omit pattern as well as Accept pattern)\n",sVar.c_str());	
+							//MOOSTrace("  denied added wildcard logging of %-20s   (fits Omit pattern as well as Accept pattern)\n",sVar.c_str());
 							bWanted = false;
 						}
 					}
-					
+
 					if(bWanted)
 					{
 						//yep we want to know....
 						if(AddMOOSVariable(sVar,sVar,"",0.0))
 						{
 							bHit = true;
-						}		
+						}
 					}
-						
+
                 }
             }
 
@@ -642,23 +657,23 @@ struct StringMatcher
 bool CMOOSLogger::IsWildCardRejected(const std::string & sVariableName) const
 {
     return std::find_if(m_sWildCardOmitted.begin(),
-                        m_sWildCardOmitted.end(), 
+                        m_sWildCardOmitted.end(),
                         StringMatcher(sVariableName)) !=m_sWildCardOmitted.end();
 
 }
 
 bool CMOOSLogger::IsWildCardAccepted(const std::string & sVariableName) const
 {
-    
+
     //we assume by default we want everything
     if(m_sWildCardAccepted.empty())
         return true;
-    
+
     //looks like some masks have been set
     return std::find_if(m_sWildCardAccepted.begin(),
-                        m_sWildCardAccepted.end(), 
+                        m_sWildCardAccepted.end(),
                         StringMatcher(sVariableName)) !=m_sWildCardAccepted.end();
-    
+
 }
 
 
@@ -667,7 +682,7 @@ std::string CMOOSLogger::MakeLogName(string sStem)
     struct tm *Now;
     time_t aclock;
     time( &aclock );
-	
+
 	if(m_bUseUTCLogNames)
 	{
 		Now = gmtime(&aclock);
@@ -683,11 +698,11 @@ std::string CMOOSLogger::MakeLogName(string sStem)
     {
         // Print local time as a string
 
-        sTmp = MOOSFormat( "%s_%d_%d_%d_____%.2d_%.2d_%.2d",
+        sTmp = MOOSFormat( "%s_%d_%02d_%02d_____%.2d_%.2d_%.2d",
             sStem.c_str(),
-            Now->tm_mday,
-            Now->tm_mon+1,
             Now->tm_year+1900,
+            Now->tm_mon+1,
+            Now->tm_mday,
             Now->tm_hour,
             Now->tm_min,
             Now->tm_sec);
@@ -732,7 +747,7 @@ bool CMOOSLogger::DoSyncLog(double dfTimeNow)
             m_SyncLogFile<<setw(COLUMN_WIDTH);
 
             //has this variable changed since last time?
-            if(rVar.IsFresh())
+            if(rVar.IsFresh() || m_bIncludeStale)
             {
                 //we can only write doubles
                 if(rVar.IsDouble())
@@ -772,8 +787,11 @@ bool CMOOSLogger::DoSyncLog(double dfTimeNow)
     m_SyncLogFile<<endl;
 
     //every few lines put a comment in
-    if((m_nSyncLines++)%30==0)
-        LabelSyncColumns();
+    if (m_bAddIntermediateHeaders)
+    {
+        if((m_nSyncLines++)%m_nSyncLogHeaderSpacing==0)
+            LabelSyncColumns();
+    }
 
     return true;
 }
@@ -783,7 +801,7 @@ bool CMOOSLogger::OpenFile(std::ofstream & of,const std::string & sName,bool bBi
 {
 	if(!bBinary)
 	    of.open(sName.c_str());
-	else 
+	else
 	{
 		of.open(sName.c_str(),std::ios::binary);
 	}
@@ -869,7 +887,7 @@ bool CMOOSLogger::OpenAsyncFiles()
 {
 
 
-		
+
 	if(m_bCompressAlog)
 	{
 		//we need to write a banner to a compressed stream
@@ -889,7 +907,7 @@ bool CMOOSLogger::OpenAsyncFiles()
 			return MOOSFail("Failed to Open alog file");
 
 		DoLogBanner(m_AsyncLogFile,m_sAsyncFileName);
-		
+
 		if(m_bUseExcludedLog)
 		{
 			if(!OpenFile(m_ExcludeLogFile, m_sExcludeFileName))
@@ -905,7 +923,7 @@ bool CMOOSLogger::OpenAsyncFiles()
 
 	if(!OpenFile(m_BinaryLogFile,m_sBinaryFileName))
 		return MOOSFail("Failed to Open blog file");
-	
+
 	m_BinaryCursor = m_BinaryLogFile.tellp();
 
     return true;
@@ -1114,24 +1132,24 @@ bool CMOOSLogger::OnNewSession()
 
     //and publish it
     m_Comms.Notify("LOGGER_DIRECTORY",m_sLogDirectoryName.c_str());
-    
+
     //and write this to file
     ofstream LF(m_sSummaryFile.c_str());
     if(LF.is_open())
     {
         LF<<"LastOpenedLoggingDirectory="<<m_sLogDirectoryName<<std::endl;
-        
+
     }
-    
+
 
     m_sAsyncFileName = m_sLogDirectoryName+"/"+m_sLogRootName+".alog";
-    m_sExcludeFileName = m_sLogDirectoryName+"/"+m_sLogRootName+".xlog";    
+    m_sExcludeFileName = m_sLogDirectoryName+"/"+m_sLogRootName+".xlog";
 	m_sSyncFileName = m_sLogDirectoryName+"/"+m_sLogRootName+".slog";
     m_sSystemFileName = m_sLogDirectoryName+"/"+m_sLogRootName+".ylog";
     m_sMissionCopyName = m_sLogDirectoryName+"/"+m_sLogRootName+"._moos";
     m_sHoofCopyName = m_sLogDirectoryName+"/"+m_sLogRootName+"._hoof";
 	m_sBinaryFileName = m_sLogDirectoryName+"/"+m_sLogRootName+".blog";
-	
+
     if(!OpenAsyncFiles())
         return MOOSFail("Error:\n\tUnable to open Asynchronous log file\n");
 
@@ -1143,8 +1161,8 @@ bool CMOOSLogger::OnNewSession()
 
     if(!CopyMissionFile())
         MOOSTrace("Warning:\n\tunable to create a back up of the mission file\n");
-	
-	
+
+
 	if(m_bCompressAlog)
 	{
 #ifdef ZLIB_FOUND
@@ -1162,14 +1180,14 @@ bool CMOOSLogger::OnNewSession()
 			m_XlogZipper.Stop();
 		}
 		m_XlogZipper.Start(m_sExcludeFileName);
-		
+
 
 #else
 		m_bCompressAlog = false;
 		MOOSTrace("WARNING: alogs will not be compressed because zlib was not found at build time");
 #endif
 	}
-	
+
 
     return true;
 }
@@ -1208,9 +1226,9 @@ CMOOSLogger::LogType CMOOSLogger::GetDestinationLog(const std::string & sMsg)
 	std::map<std::string,LogType>::iterator q =  m_LogDestinations.find(sMsg);
 	if( q==m_LogDestinations.end())
 		return UNKNOWN;
-	else 
+	else
 		return q->second;
-	
+
 }
 
 bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
@@ -1231,12 +1249,12 @@ bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
             //which is used for the synchronous case..
             if(m_MOOSVars.find(rMsg.m_sKey)!=m_MOOSVars.end())
             {
-				
-				
+
+
 				std::stringstream sEntry;
-				
+
 				sEntry.setf(ios::left);
-				
+
 				sEntry.setf(ios::fixed);
 
 				sEntry<<setw(15)<<setprecision(3)<<rMsg.GetTime()-GetAppStartTime()<<' ';
@@ -1275,20 +1293,20 @@ bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
 				{
 					//here we append to the binary log and begin each line with a summary....
 					m_BinaryLogFile<<sEntry.str();
-					
+
 					//write in coordinates in the alog
 					sEntry<<"<MOOS_BINARY>File="<<(m_sLogRootName+".blog")<<",Offset="<<m_BinaryLogFile.tellp()<<",Bytes="<<rMsg.m_sVal.size()<<"</MOOS_BINARY>";
-					
+
 					//write the binary data to file
 					m_BinaryLogFile.write(rMsg.m_sVal.data(), rMsg.m_sVal.size());
-					
+
 					//add a new line so even the binary log file is broadly human readable
 					m_BinaryLogFile<<std::endl;
-					
+
 				}
-				
-				
-				
+
+
+
 				int i=0;
 				if(m_bUseExcludedLog)
 				{
@@ -1301,11 +1319,11 @@ bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
 					}
 				}
                 sStream[i]<<sEntry.str()<<endl;
-				
-				
+
+
             }
         }
-		
+
 		if(m_bCompressAlog)
 		{
 			//send to the worker thread...
@@ -1317,7 +1335,7 @@ bool CMOOSLogger::DoAsyncLog(MOOSMSG_LIST &NewMail)
 			//a regular write
 			if(m_AsyncLogFile.is_open())
 				m_AsyncLogFile<<sStream[0].str();
-			
+
 			if(m_ExcludeLogFile.is_open())
 				m_ExcludeLogFile<<sStream[1].str();
 		}
@@ -1553,8 +1571,3 @@ std::string CMOOSLogger::MakeStatusString()
     ss<<"LogAuxSrc="<<std::boolalpha<<m_bLogAuxSrc;
     return ss.str();
 }
-
-
-
-
-

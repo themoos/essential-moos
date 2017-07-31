@@ -150,6 +150,15 @@ protected:
 	//.true if we want to log AuxSrc varaibles
 	bool m_bLogAuxSrc;
 
+    //true if we want headers inserted every x lines
+    bool m_bAddIntermediateHeaders;
+    
+    //sets how often headers are added
+    int m_nSyncLogHeaderSpacing;
+
+    //true if want stale varables to not be changed to NaN
+    bool m_bIncludeStale;
+
     //housekeeping  variables for performing tasks
     double m_dfLastSyncLogTime;
     double m_dfSyncLogPeriod;
