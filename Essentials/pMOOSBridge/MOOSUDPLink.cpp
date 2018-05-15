@@ -170,7 +170,8 @@ bool CMOOSUDPLink::ReadPktFromArray(unsigned char *pBuffer,int nBytes, CMOOSComm
     {
         if(q+nRqd<=nBytes)
         {
-            PktRx.Fill(pBuffer+q,nRqd);
+            memcpy(PktRx.NextWrite(), pBuffer+q, nRqd);
+            PktRx.OnBytesWritten(PktRx.NextWrite(), nRqd);
             q+=nRqd;
         }
         else
