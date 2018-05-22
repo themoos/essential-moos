@@ -22,6 +22,7 @@ matrix:
       compiler: gcc
 
 before_script:
+  - mkdir core-moos
   - cd core-moos
   - wget https://github.com/themoos/core-moos/archive/10.0.2.a-release.tar.gz -O core-moos.tar.gz
   - tar xvzf core-moos.tar.gz
