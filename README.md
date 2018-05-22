@@ -4,11 +4,13 @@ Essential tools for MOOS.
 
 See the MOOS homepage at https://sites.google.com/site/moossoftware/ for more information and documentation.
 
-# Dependencies
+## Dependencies
+
+The dependencies for this project are:
 
 - core-moos (https://github.com/themoos/core-moos)
 
-# Build Statuses
+## Build Statuses
 
 OS|Build Status
 --|------------
