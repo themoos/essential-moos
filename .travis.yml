@@ -22,13 +22,11 @@ matrix:
       compiler: gcc
 
 before_script:
-  - mkdir core-moos
+  - git clone https://github.com/themoos/core-moos.git core-moos
   - cd core-moos
-  - wget https://github.com/themoos/core-moos/archive/10.0.2.a-release.tar.gz -O core-moos.tar.gz
-  - tar xvzf core-moos.tar.gz
   - mkdir moos-build
   - cd moos-build
-  - cmake -DCMAKE_INSTALL_PREFIX=install_dir -DENABLE_EXPORT=ON -DUSE_ASYNC_COMMS=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON -DUSE_CXX11_IF_AVAILABLE=ON ../core-moos-10.0.2.a-release/
+  - cmake -DCMAKE_INSTALL_PREFIX=install_dir -DENABLE_EXPORT=ON -DUSE_ASYNC_COMMS=ON -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SHARED_LIBS=ON -DUSE_CXX11_IF_AVAILABLE=ON ..
   - cmake --build . --config Release -- -j3
   - cmake --build . --config Release --target install
   - cd ../..
