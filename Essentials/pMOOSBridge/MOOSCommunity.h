@@ -35,7 +35,7 @@
 #define AFX_MOOSCOMMUNITY_H__5F2162C1_2606_485D_8F10_610257FD8A67__INCLUDED_
 
 
-#include "MOOS/libMOOS/Comms/MOOSCommClient.h"
+#include "MOOS/libMOOS/Comms/MOOSAsyncCommClient.h"
 #include "MOOSUDPLink.h"
 
 
@@ -72,7 +72,7 @@ public:
     bool HasMOOSSRegistration(const std::string & sVariable);
     
 protected:
-    CMOOSCommClient m_CommClient;
+    MOOS::MOOSAsyncCommClient m_CommClient;
 
     std::set<std::string> 		m_Sources;
     std::map<SP,std::string> 	m_Sinks;
