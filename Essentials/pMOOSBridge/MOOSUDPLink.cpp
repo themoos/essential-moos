@@ -147,7 +147,7 @@ bool CMOOSUDPLink::ListenLoop()
             m_InLock.UnLock();
 
         }
-        catch (CMOOSException e)
+        catch (CMOOSException& e)
         {
             MOOSTrace("failed to serialise udp datagram to a CommPacket");
         }
