@@ -1,11 +1,5 @@
 # Bridging MOOS Communities withpShare
 
-## Paul Newman, University of Oxford
-
-## May 25, 2013
-
-....ten years on
-
 
 ## Contents
 
@@ -110,9 +104,9 @@ Imagine you as an application developer knew that other communities (but you do 
 
 Now, if you knew exactly who wanted it you could configure a standard UDP shares to mutually agreed ports (presumably one port per community) on which otherpSharesare listening. But you don’t. So what to do? Well you could use pShare’s ability for packets to predefine multicast channels ( these are really simply multicast addresses behind the scenes) you can tell pShare to forward MOOS messages out to a multicast_channel and later on any number of other pShareinstances can subscribe to this channel and receive them.
 
-## 3 The form of command line configuration strings
+## The form of command line configuration strings
 
-### 3.1 Output
+### Output
 
 The ’-o’ switch allows you to configure which messages to forward (share), how to rename them and where to send them. At its highest level the the ’-o’ switch is followed by a comma separated list of mappings.  `-o= mapping , mapping, mapping,...` and each mapping describes how one MOOS variable is routed to any number of destinations.
 
@@ -131,67 +125,65 @@ and destination is one of
 
 ### 3.2 Input
 
-The -i switch is much simpler. It tells an instance of pSharehow to listen to for incoming traffic. The format is always -i=localhost:<port_num> or i=multicast_<N> where N is a number between 0 and 255. Multiple listens
+The -i switch is much simpler. It tells an instance of pShare how to listen to for incoming traffic. The format is always -i=localhost:<port_num> or i=multicast_<N> where N is a number between 0 and 255. Multiple listens
 can be specified in a comma separated list.
 
-## 4CommandlineConfiguration
+## CommandlineConfiguration
 
 Imagine we have two communities A and B. Lets also assume that they reside on different machines. Machine A has ip address 192.168.0.10 and machine B has ip address 192.168.0.4.
 
 ```
-//description share X from A to B
+// share X from A to B
 terminal A command line -o=’X->192.168.0.4:10000’
 terminal B command line -i=localhost:
 ```
 
 ```
-//description share X from A to B as Y
-terminal A command line -o=’X->Y:192.168.0.4:10000’
-terminal B command line -i=localhost:
+// share X from A to B as Y
+terminal A command line : pShare -o=’X->Y:192.168.0.4:10000’
+terminal B command line : pShare -i=localhost:
 ```
 ```
-description share X from A to B as X and Y
-terminal A command line -o=’X->92.168.0.4:10000 & Y:192.168.0.4:10000’
-terminal B command line -i=localhost:
+// share X from A to B as X and Y
+terminal A command line : pshare -o=’X->92.168.0.4:10000 & Y:192.168.0.4:10000’
+terminal B command line : pshare -i=localhost:
 ```
 ```
-description share X from A to B as X and Y via two different ports
-terminal A command line -o=’X->92.168.0.4:10000 & Y:192.168.0.4:20000’
-terminal B command line -i=localhost:10000,localhost:
+//share X from A to B as X and Y via two different ports
+terminal A command line : -o=’X->92.168.0.4:10000 & Y:192.168.0.4:20000’
+terminal B command line : -i=localhost:10000,localhost:
 ```
 ```
-description share X and Y to B
-terminal A command line -o=’X->192.168.0.4:10000 , Y->192.168.0.4:10000’
-terminal B command line -i=localhost:
+// share X and Y to B
+terminal A command line : pshare -o=’X->192.168.0.4:10000 , Y->192.168.0.4:10000’
+terminal B command line : pshare -i=localhost:
 ```
 ```
-description share X via multicast
-terminal A command line -o=’X->multicast_7’
-terminal B command line -i=multicast_
+// share X via multicast
+terminal A command line : pshare -o=’X->multicast_7’
+terminal B command line : pshare -i=multicast_
 ```
 ```
-description share X via multicast and rename
-terminal A command line -o=’X->Y:multicast_7’
-terminal B command line -i=multicast_
+// share X via multicast and rename
+terminal A command line : pshare -o=’X->Y:multicast_7’
+terminal B command line : pshare -i=multicast_
 ```
 ```
-description share X on several channels
-terminal A command line -o=’X->Y:multicast_7 & Z:multicast_3’
-terminal B command line -i=multicast_
+// share X on several channels
+terminal A command line : pshare -o=’X->Y:multicast_7 & Z:multicast_3’
+terminal B command line : pshare -i=multicast_
 ```
 ```
-description share X via multicast and rename
-terminal A command line -o=’X->Y:multicast_7’
-terminal B command line -i=multicast_7,multicast_
+// share X via multicast and rename
+terminal A command line : pshare -o=’X->Y:multicast_7’
+terminal B command line : pshare -i=multicast_7,multicast_
 ```
 ```
-description share X as several new variables on the same multicast channel
-terminal A command line -o=’X->Y:multicast_7 & Z:multicast_7’
-terminal B command line -i=multicast_
+// share X as several new variables on the same multicast channel
+terminal A command line : pshare -o=’X->Y:multicast_7 & Z:multicast_7’
+terminal B command line : pshare -i=multicast_
 ```
-Tip:don’t forget to put single quotes around the routing directives to prevent
-
-your shell from interpretting the ’>’ character.
+Tip:don’t forget to put single quotes around the routing directives to prevent your shell from interpretting the ’>’ character.
 
 
 ## 5ConfiguringpSharefroma.moosfile
