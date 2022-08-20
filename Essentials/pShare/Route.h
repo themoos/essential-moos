@@ -21,6 +21,7 @@ class Route {
 public:
 	Route();
 	virtual ~Route();
+	bool IsActive(const double time_now);
 
 	bool operator==(const Route & r) const;
 	MOOS::IPV4Address dest_address;
@@ -30,6 +31,10 @@ public:
 	std::string to_string() const;
 	double frequency;
 	double last_time_sent;
+	double duration_of_share;
+	double creation_time;
+	int num_shares_completed;
+	int max_shares;
 
 };
 

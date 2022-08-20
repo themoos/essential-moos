@@ -12,9 +12,9 @@ ProcessConfig=Antler
 
 ProcessConfig=ShareA
 {
-	Output = src_name=X,route=localhost:9021,frequency=4.0
-	Output = Y->localhost:9021@1
-	Output = Z->Z2:localhost:9021
+	Output = src_name=X,route=localhost:9021,frequency=4.0, duration = 10
+	Output = Y->localhost:9021@1,duration = 10
+	Output = Z->Z2:localhost:9021,duration = 10
 	Verbose=true
 	
 }

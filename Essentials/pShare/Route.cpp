@@ -5,18 +5,50 @@
  *      Author: pnewman
  */
 
-#include "Route.h"
 #include <sstream>
+#include <iostream>
+
+#include "MOOS/libMOOS/Utils/MOOSUtilityFunctions.h"
+#include "Route.h"
+
 namespace MOOS {
 
 Route::Route() {
-	// TODO Auto-generated constructor stub
     last_time_sent = 0.0;
     frequency   = 0.0;
+	duration_of_share = -1.0; 
+	max_shares = -1.0;
+	num_shares_completed = 0;
+	creation_time = Time();
 }
 
 Route::~Route() {
 	// TODO Auto-generated destructor stub
+}
+
+
+bool Route::IsActive(const double time_now){
+
+	//has the allowable share window passed?
+	//if <0 then no limit has been set;
+
+	std::cout<<"duration_of_share "<<duration_of_share<<"\n";
+
+	if(duration_of_share >=0.0 && time_now-creation_time > duration_of_share){
+		return false;
+	}
+
+	//has the maximum number of shares been exceeded?
+	//if <0 then no limit has been set;
+	if(max_shares >=0 && num_shares_completed>=max_shares){
+		return false;
+	}
+
+	//is the immediate frequence of shares too high?
+	if(frequency>0.0 && time_now-last_time_sent<(1.0/frequency)){
+		return false;
+	}
+	return true;
 }
 
 std::string Route::to_string() const

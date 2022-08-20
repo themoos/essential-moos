@@ -17,7 +17,7 @@
 
 #include "MOOS/libMOOS/Utils/MOOSUtilityFunctions.h"
 #include "MOOS/libMOOS/Utils/IPV4Address.h"
-#include "MOOS/libMOOS/Thirdparty/getpot/GetPot"
+//#include "MOOS/libMOOS/Thirdparty/getpot/GetPot"
 #include "MOOS/libMOOS/Utils/SafeList.h"
 #include "MOOS/libMOOS/Utils/ConsoleColours.h"
 #include "MOOS/libMOOS/Utils/KeyboardCapture.h"
@@ -83,12 +83,16 @@ protected:
 				const std::string & dest_name,
 				MOOS::IPV4Address address,
 				bool multicast,
-				double frequency);
+				double frequency,
+				double duration,
+				int max_shares);
 
 	bool  AddMulticastAliasRoute(const std::string & src_name,
 					const std::string & dest_name,
 					unsigned int channel_num,
-					double frequency);
+					double frequency,
+					double duration,
+					int max_shares);
 
 	MOOS::IPV4Address GetAddressFromChannelAlias(unsigned int channel_number) const;
 
@@ -482,10 +486,13 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 
 	std::string src_name, dest_name, routes;
+	double duration = -1;
+	int max_shares = -1;
 
 	MOOSRemoveChars(configuration_string, " ");
 
 	if (is_output) {
+		MOOSTrace(configuration_string);
 		if (!MOOSValFromString(src_name, configuration_string, "src_name"))
 			throw std::runtime_error(
 					"ProcessIOConfigurationString \"src_name\" is a required field");
@@ -493,6 +500,9 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 		//default no change in name
 		dest_name = src_name;
 		MOOSValFromString(dest_name, configuration_string, "dest_name");
+
+		MOOSValFromString(duration,configuration_string,"duration");
+		MOOSValFromString(max_shares,configuration_string,"max_shares");
 	}
 
 	//we do need a route....
@@ -526,7 +536,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 			if (is_output)
 			{
 				if (!AddMulticastAliasRoute(src_name, dest_name,
-						channel_num,frequency))
+						channel_num,frequency,duration, max_shares))
 					return false;
 			}
 			else
@@ -543,7 +553,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 			if (is_output)
 			{
-				if (!AddRoute(src_name, dest_name, route_address, false,frequency))
+				if (!AddRoute(src_name, dest_name, route_address, false,frequency,duration,max_shares))
 					return false;
 			}
 			else
@@ -686,17 +696,21 @@ bool Share::Impl::OnNewMail(MOOSMSG_LIST & new_mail)
 bool  Share::Impl::AddMulticastAliasRoute(const std::string & src_name,
 				const std::string & dest_name,
 				unsigned int channel_num,
-				double frequency)
+				double frequency,
+				double duration,
+				int max_shares)
 {
 	MOOS::IPV4Address alias_address = GetAddressFromChannelAlias(channel_num);
-	return AddRoute(src_name,dest_name,alias_address,true,frequency);
+	return AddRoute(src_name,dest_name,alias_address,true,frequency,duration,max_shares);
 }
 
 bool  Share::Impl::AddRoute(const std::string & src_name,
 				const std::string & dest_name,
 				MOOS::IPV4Address address,
 				bool multicast,
-				double frequency)
+				double frequency,
+				double duration,
+				int max_shares)
 {
 
 	SocketMap::iterator mcg = socket_map_.find(address);
@@ -721,6 +735,8 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		route.dest_address = address;
 		route.multicast = multicast;
 		route.frequency = frequency;
+		route.duration_of_share = duration;
+		route.max_shares= max_shares;
 
 		std::list<Route> & rlist = routing_table_[trimed_src_name];
 
@@ -1057,8 +1073,14 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 		//process every route
 		Route & route = *q;
 
-		if(route.frequency>0.0 && now-route.last_time_sent<(1.0/route.frequency))
-		    continue;
+		//allow route to demur becasue for example
+		//  1) share is too often, 
+		//	2) outside duration
+		//  3) share count has been exceeded.
+		//  4) another reason privae to the share...
+		if(!route.IsActive(now)){
+			continue;
+		}
 
 		SocketMap::iterator mcg = socket_map_.find(route.dest_address);
 		if (mcg == socket_map_.end()) {
@@ -1109,6 +1131,7 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 
 
 		route.last_time_sent = now;
+		route.num_shares_completed++;
 	}
 
 	return true;
