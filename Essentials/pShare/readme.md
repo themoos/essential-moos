@@ -17,8 +17,8 @@
 - 3 The form of command line configuration strings
    - 3.1 Output
    - 3.2 Input
-- 4CommandlineConfiguration
-- 5ConfiguringpSharefroma.moosfile
+- 4 CommandlineConfiguration
+- 5 ConfiguringpSharefroma.moosfile
 - 6 Wildcard Sharing
    - 6.1 Caret Sharing: A Special Case of Wildcard Sharing
 - 7 Instigating Dynamic Shares On The Fly
@@ -114,59 +114,21 @@ Now, if you knew exactly who wanted it you could configure a standard UDP shares
 
 ### 3.1 Output
 
-The ’-o’ switch allows you to configure which messages to forward (share), how to rename them and where to send them. At its highest level the the ’-o’ switch is followed by a comma separated list of mappings 
+The ’-o’ switch allows you to configure which messages to forward (share), how to rename them and where to send them. At its highest level the the ’-o’ switch is followed by a comma separated list of mappings.  `-o= mapping , mapping, mapping,...` and each mapping describes how one MOOS variable is routed to any number of destinations.
 
-“-o= mapping , mapping, mapping,...” 
-
-and each mapping describes how one MOOS variable is routed to any number of destinations.
-Each mapping contains mulitple...
-```
-
-```
-new_name: destination
-```
+A single mapping contains a direction of a variable name to one or more routes . A mapping has the syntax
 ```
 var_name->route & route & route....
 ```
+where a route has the form
 ```
--o = mapping, mapping, mapping....
+new_name: destination
 ```
-```
-<host_address>:<port> multicast_channel
-```
-```
-OR destination
-```
-```
-OR
-```
-```
-an output directive is....
-```
-```
-a mapping is ....
-```
-```
-a route is.....
-```
-```
-a destination is.....
-```
-Figure 3: SpecifyingpShareforwarding behaviour from the command line. Examples are given in4.
+and destination is one of
 
-routesand has the form of “var_name->route & route...”soavariable
+* an address and port pair "address:port"
+* a multicast channel as described later.
 
-```
-name pointing to an ampersand-separated list of “routes”. Now, each
-route describes a...
-```
-destinationfor a message and it has the format“new_name:destination_address:destination_port”
-
-```
-or “new_name:multicast_channel”. The new_name part can be om-
-mited in which case the variable is not renamed. Figure 3 describes this
-hiearchy pictorially and some concrete examples are given in Section 4.
-```
 ### 3.2 Input
 
 The -i switch is much simpler. It tells an instance of pSharehow to listen to for incoming traffic. The format is always -i=localhost:<port_num> or i=multicast_<N> where N is a number between 0 and 255. Multiple listens
