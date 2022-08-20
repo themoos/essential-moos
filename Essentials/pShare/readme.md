@@ -72,25 +72,7 @@ Each instance ofpSharecan be configured such that it can
 
 how to do this is best explained with some examples and that will happen in Section 4. Before that it is worth explaining the merit of multicast channels.
 
-
-```
-pShare
-```
-```
-pShare
-```
-```
-MOOSDB
-```
-```
-MOOSDB
-```
-```
-pShare
-```
-```
-MOOSDB
-```
+[ToDo:insert diagram]
 Figure 2: A simple use ofpShare: three communities are linked by two instances of pShare - one in each community but data sharing is not symmetric.
 
 ### 2.2 Sharing via Multicast Channels
