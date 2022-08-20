@@ -365,16 +365,10 @@ Finally of course wildcard shares can be specified in configuration files as
 shown below.
 
 ```
-Listing 2: Configuring pShare from a configuration block
+Configuring pShare from a configuration block
 ProcessConfig=pShare
 {
-```
-```
-//wecan of course alsouse wildcards this is where it -
-gets interesting
-//lets shareany varialble incommunity which is 2 -
-charcters long and begins
-//withX
+//we can of course also use wildcards this is where it gets interesting. Lets share any varialble incommunity which is 2 characters long and begins withX
 Output= src_name=X?,route=localhost:
 ```
 ```
@@ -392,61 +386,34 @@ Wfomra process
 Output=src_name=W⇤:⇤A, route= multicast_
 }
 ```
-### 6.1 Caret Sharing: A Special Case of Wildcard Sharing
+### Caret Sharing: A Special Case of Wildcard Sharing
 
-pShare supports a special case of wildcard sharing in that it can forward a
-
-variable under a new name where the new name is derived from the part of
-
-the original name which matches a ’*’ wildcard charcter. Granted this sounds
-
-complicated. Its easiest to understand this with a few examples. The important
-
-point to remember though is the syntax for this special case it is*<str>->^or
-
-<str>*->^where <str> is any string that does not contain a * or ?.
+pShare supports a special case of wildcard sharing in that it can forward a variable under a new name where the new name is derived from the part of the original name which matches a ’*’ wildcard charcter. Granted this sounds complicated. Its easiest to understand this with a few examples. The important point to remember though is the syntax for this special case it is*<str>->^or <str>*->^where <str> is any string that does not contain a * or ?.
 
 ```
-description A_X gets shared as A on multicast 7
+// A_X gets shared as A on multicast 7
 terminal A command line -o=’*_X->^:multicast_7’
 terminal B command line -i=multicast_
 ```
-Note in that in the kind of sharing the ’^’ means the part of the variable
-
-name which matches the single ’*’ wildcard character on the src filter. This
-
-wildcard character can only occur at the beginning or teh end of the variable
-
-pattern. So we can also have:
+Note in that in the kind of sharing the ’^’ means the part of the variable name which matches the single ’*’ wildcard character on the src filter. This wildcard character can only occur at the beginning or teh end of the variable pattern. So we can also have:
 
 
 ```
-description A_X gets shared as X on multicast 7
+// A_X gets shared as X on multicast 7
 terminal A command line -o=’A_*->^:multicast_7’
 terminal B command line -i=multicast_
 ```
-## 7 Instigating Dynamic Shares On The Fly
+   
+## Instigating Dynamic Shares On The Fly
 
-pSharecan be told to start sharing data dynamically by any MOOS Process
-
-simply by publishing a correctly formatted string. The format is simple - its
-
-is pretty much the same as a line in a configuration file. You need to write a
-
-string“cmd = <directive>” to the variablePSHARE_CMDwhere<directive>
-
-is a output or input directive such as you would write in a configuration file.
+pShare can be told to start sharing data dynamically by any MOOS Process simply by publishing a correctly formatted string. The format is simple - its is pretty much the same as a line in a configuration file. You need to write a string“cmd = <directive>” to the variablePSHARE_CMDwhere<directive> is a output or input directive such as you would write in a configuration file.
 
 Here are some examples:
 
 - “cmd = Output , src_name = X?, route = localhost:9021”
 - “ cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832”
 
-The ability to dynamically instigate shares turns out to be very useful if you
-
-don’t know what needs to be shared whenpSharefirst starts and that only gets
-
-figured out by other processes.
+The ability to dynamically instigate shares turns out to be very useful if you don’t know what needs to be shared whenpSharefirst starts and that only gets figured out by other processes.
 
 
 
