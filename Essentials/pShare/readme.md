@@ -26,17 +26,8 @@
 
 ## 1 Introduction
 
-MOOS-V10 brings with it a new command line application which allows data
-
-to be shared between MOOS communities. Recall that in MOOS parlance
-
-a“community”isthesetofprogrammstalkingtoaparticularinstanceofa
-
-MOOSDBincluding theMOOSDBitself. In some wayspShareis just a modern,
-
-better written version ofpMOOSBridgein others it offers much greater flexibility
-
-and functionality. Here is a quick summary ofpSharefunctionality
+MOOS-V10 brings with it a new command line application which allows data to be shared between MOOS communities. Recall that in MOOS parlance a“community”is the set of programs talking to a particular instance of a
+MOOSDB including the MOOSDB itself. In some ways pShare is just a modern, better written version of pMOOSBridge in others it offers much greater flexibility, and functionality. Here is a quick summary of pShare functionality
 
 - it offers UDP communication between communities
 - it can share data over multicast channels
@@ -48,32 +39,19 @@ and functionality. Here is a quick summary ofpSharefunctionality
 - it supports command line configuration and from a .moos file
 - it can be completely configured from the command line
 
-It is worth, straight offthe bat, understanding how in usage termspShareis
+It is worth, straight offthe bat, understanding how in usage terms, pShare is
+different from pMOOSBridge
 
-different frompMOOSBridge
-
-- pShareunlikepMOOSBridgeonly supports UDP (or multicast which is a
+- pShare, unlike pMOOSBridge, only supports UDP (or multicast which is a
     kind of UDP)
-- You need one instance of pShare per community (compare this topMOOSBridge
+- You need one instance of pShare per community (compare this to pMOOSBridge
     where a single instance could be used to bridge any number of communi-
     ties)
-- CurrentlypShareonly supports sharing of up to 64K messages
+- Currently, pShare only supports sharing of up to 64K messages
 
 ### 1.1 Why UDP?
 
-UDP is, of course, a lossy affair - there is no guarrantee that messages will
-
-get through and indeedpShareis intended for use in just such situations. Use
-
-pSharewhen you want, when possible, to get messages between communities
-
-and yet you don’t mind dropping a few messages. Perhaps this applies when
-
-you have a deployed robot out in the wilds and the wireless link simply doesn’t
-
-suport tcp/ip as well as you might hope.^1
-
-(^1) If you do mind loosing things then you must use tcp/ip (standard MOOS) and if you have
+UDP is, of course, a lossy affair - there is no guarrantee that messages will get through and indeedpShareis intended for use in just such situations. Use pSharewhen you want, when possible, to get messages between communities and yet you don’t mind dropping a few messages. Perhaps this applies when you have a deployed robot out in the wilds and the wireless link simply doesn’t support tcp/ip as well as you might hope. If you do mind loosing things then you must use tcp/ip (standard MOOS) and if you have
 a lossy connection you will spend years waiting for data.
 
 
@@ -83,37 +61,13 @@ pShare pShare
 ```
 MOOSDB MOOSDB
 ```
-Figure 1: A simple use of pShare: two communities are linked by two in-
-
-stances of pShare - one in each community.
+Figure 1: A simple use of pShare: two communities are linked by two instances of pShare - one in each community.
 
 ## 2 Basic Operation
 
-Figure 1 shows a typical and simple use case ofpShare. Here two communities
+Figure 1 shows a typical and simple use case ofpShare. Here two communities are linked by two instances ofpShare. Each is connected to a MOOSDB and each pShare is configured (by a means we will get to in a minute) to subscribe to messages from theMOOSDB(issued by clients). These messages are forwarded over a udp link to the other pShare instance which inserts them into it’s own MOOSDB. The important point here is that if process “A” in community “P” has message M shared via pShareP and pShareQ to process B in community Q,then when B receives M it will still have A as its source and P as its source community. So to process B it looks like A is actutaly in its own community (Q).
 
-are linked by two instances ofpShare. Each is connected to aMOOSDBand each
-
-pShare is configured (by a means we will get to in a minute) to subscribe to
-
-messages from theMOOSDB(issued by clients). These messages are forwarded
-
-over a udp link to the otherpShareinstance which inserts them into it’s own
-
-MOOSDB.The important point here is that if process “A” in community “P” has
-
-message M shared viapSharePandpShareQ toprocess B in community Q
-
-then when B receives M it will still have A as its source and P as its source
-
-community. So to process B it looks like A is actutaly in its own community
-
-(Q).
-
-Amorecomplicated(marginally)exampleisshowinFigure2. Herethe
-
-left hand community is sharing as an output data to the top right and bottom
-
-right communities but only receiving data from the bottom right.
+A more complicated (marginally) example is shown in Figure2. Here the left hand community is sharing as an output data to the top right and bottom right communities but only receiving data from the bottom right.
 
 ### 2.1 Different Ways Sharing
 
@@ -122,14 +76,12 @@ Each instance ofpSharecan be configured such that it can
 - forward a named message (like ’X’) to any number of specific udp ports
     on any number of other machines
 - can rename a message before forwarding
-- receive and forward on to its ownMOOSDBmessages from any number of
+- receive and forward on to its own MOOSDB messages from any number of
     otherpShares
 - forward messages on predefined or any number of multicast channels
 - receive messages on any number of multicast channels
 
-how to do this is best explained with some examples and that will happen in
-
-Section 4. Before that it is worth explaining the merit of multicast channels.
+how to do this is best explained with some examples and that will happen in Section 4. Before that it is worth explaining the merit of multicast channels.
 
 
 ```
@@ -150,44 +102,23 @@ pShare
 ```
 MOOSDB
 ```
-Figure 2: A simple use ofpShare: three communities are linked by two in-
-
-stances of pShare - one in each community but data sharing is not symmetric.
+Figure 2: A simple use ofpShare: three communities are linked by two instances of pShare - one in each community but data sharing is not symmetric.
 
 ### 2.2 Sharing via Multicast Channels
 
-Imagine you as an application developer knew that other communities (but you
+Imagine you as an application developer knew that other communities (but you do not know which ones a-priori) would be interested in a variable called X.
 
-do not know which onesa-priori)wouldbeinterestedinavariablecalledX.
-
-Now if you knew exactly who wanted it you could configure a standard UDP
-
-shares to mutually agreed ports (presumably one port per community) on which
-
-otherpSharesare listening. But you don’t. So what to do? Well you could use
-
-pShare’sability for packets to predefine multicast channels ( these are really
-
-simply multicast addresses behind the scenes) you can tell pShare to forward
-
-MOOS messages out to a multicast_channel and later on any number of other
-
-pShareinstances can subscribe to this channel and receive them.
+Now, if you knew exactly who wanted it you could configure a standard UDP shares to mutually agreed ports (presumably one port per community) on which otherpSharesare listening. But you don’t. So what to do? Well you could use pShare’s ability for packets to predefine multicast channels ( these are really simply multicast addresses behind the scenes) you can tell pShare to forward MOOS messages out to a multicast_channel and later on any number of other pShareinstances can subscribe to this channel and receive them.
 
 ## 3 The form of command line configuration strings
 
 ### 3.1 Output
 
-The ’-o’ switch allows you to configure which messages to forward (share), how
+The ’-o’ switch allows you to configure which messages to forward (share), how to rename them and where to send them. At its highest level the the ’-o’ switch is followed by a comma separated list of mappings 
 
-to rename them and where to send them. At its highest level the the ’-o’ switch
+“-o= mapping , mapping, mapping,...” 
 
-is followed by a comma separated list of
-
-mappings“-o= mapping , mapping, mapping,...” and each mapping de-
-
-```
-scribes how one MOOS variable is routed to any number of destinations.
+and each mapping describes how one MOOS variable is routed to any number of destinations.
 Each mapping contains mulitple...
 ```
 
@@ -221,9 +152,7 @@ a route is.....
 ```
 a destination is.....
 ```
-Figure 3: SpecifyingpShareforwarding behaviour from the command line. Ex-
-
-amples are given in4.
+Figure 3: SpecifyingpShareforwarding behaviour from the command line. Examples are given in4.
 
 routesand has the form of “var_name->route & route...”soavariable
 
@@ -240,30 +169,21 @@ hiearchy pictorially and some concrete examples are given in Section 4.
 ```
 ### 3.2 Input
 
-The -i switch is much simpler. It tells an instance of pSharehow to listen
-
-to for incoming traffic. The format is always -i=localhost:<port_num> or -
-
-i=multicast_<N> where N is a number between 0 and 255. Multiple listens
-
+The -i switch is much simpler. It tells an instance of pSharehow to listen to for incoming traffic. The format is always -i=localhost:<port_num> or i=multicast_<N> where N is a number between 0 and 255. Multiple listens
 can be specified in a comma separated list.
 
 ## 4CommandlineConfiguration
 
-Imagine we have two communities A and B. Lets also assume that they reside
-
-on different machines. Machine A has ip address 192.168.0.10 and machine B
-
-has ip address 192.168.0.4.
+Imagine we have two communities A and B. Lets also assume that they reside on different machines. Machine A has ip address 192.168.0.10 and machine B has ip address 192.168.0.4.
 
 ```
-description share X from A to B
+//description share X from A to B
 terminal A command line -o=’X->192.168.0.4:10000’
 terminal B command line -i=localhost:
 ```
 
 ```
-description share X from A to B as Y
+//description share X from A to B as Y
 terminal A command line -o=’X->Y:192.168.0.4:10000’
 terminal B command line -i=localhost:
 ```
