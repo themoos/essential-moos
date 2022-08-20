@@ -54,6 +54,9 @@ Figure 1: A simple use of pShare: two communities are linked by two instances of
 
 ## 2 Basic Operation
 
+<img width="612" alt="image" src="https://user-images.githubusercontent.com/989514/185761364-f9e11315-ad06-4cb4-b554-bbef0e7c80ec.png">
+
+
 Figure 1 shows a typical and simple use case ofpShare. Here two communities are linked by two instances ofpShare. Each is connected to a MOOSDB and each pShare is configured (by a means we will get to in a minute) to subscribe to messages from theMOOSDB(issued by clients). These messages are forwarded over a udp link to the other pShare instance which inserts them into it’s own MOOSDB. The important point here is that if process “A” in community “P” has message M shared via pShareP and pShareQ to process B in community Q,then when B receives M it will still have A as its source and P as its source community. So to process B it looks like A is actutaly in its own community (Q).
 
 A more complicated (marginally) example is shown in Figure2. Here the left hand community is sharing as an output data to the top right and bottom right communities but only receiving data from the bottom right.
