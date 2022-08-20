@@ -61,9 +61,12 @@ Figure 1 shows a typical and simple use case ofpShare. Here two communities are 
 
 A more complicated (marginally) example is shown in Figure2. Here the left hand community is sharing as an output data to the top right and bottom right communities but only receiving data from the bottom right.
 
+<img width="742" alt="image" src="https://user-images.githubusercontent.com/989514/185761402-bd8e4f91-a233-4937-b6ea-1c213878c382.png">
+
+
 ### 2.1 Different Ways Sharing
 
-Each instance ofpSharecan be configured such that it can
+Each instance of `pShare` can be configured such that it can :
 
 - forward a named message (like ’X’) to any number of specific udp ports
     on any number of other machines
@@ -73,10 +76,10 @@ Each instance ofpSharecan be configured such that it can
 - forward messages on predefined or any number of multicast channels
 - receive messages on any number of multicast channels
 
-how to do this is best explained with some examples and that will happen in Section 4. Before that it is worth explaining the merit of multicast channels.
+How to do this is best explained with some examples and that will happen in Section 4. Before that it is worth explaining the merit of multicast channels.
 
-[ToDo:insert diagram]
-Figure 2: A simple use ofpShare: three communities are linked by two instances of pShare - one in each community but data sharing is not symmetric.
+
+
 
 ### 2.2 Sharing via Multicast Channels
 
