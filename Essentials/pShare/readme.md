@@ -1,4 +1,4 @@
-# Bridging MOOS Communities withpShare
+# Bridging MOOS Communities with pShare
 
 
 ## Contents
@@ -48,13 +48,8 @@ different from pMOOSBridge
 UDP is, of course, a lossy affair - there is no guarrantee that messages will get through and indeedpShareis intended for use in just such situations. Use pSharewhen you want, when possible, to get messages between communities and yet you don’t mind dropping a few messages. Perhaps this applies when you have a deployed robot out in the wilds and the wireless link simply doesn’t support tcp/ip as well as you might hope. If you do mind loosing things then you must use tcp/ip (standard MOOS) and if you have
 a lossy connection you will spend years waiting for data.
 
+[ToDo: insert diagram]
 
-```
-pShare pShare
-```
-```
-MOOSDB MOOSDB
-```
 Figure 1: A simple use of pShare: two communities are linked by two instances of pShare - one in each community.
 
 ## 2 Basic Operation
