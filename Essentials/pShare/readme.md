@@ -186,128 +186,75 @@ terminal B command line : pshare -i=multicast_
 Tip:don’t forget to put single quotes around the routing directives to prevent your shell from interpretting the ’>’ character.
 
 
-## 5ConfiguringpSharefroma.moosfile
+## Configuring pShare from a moosfile
 
-We have seen some examples on how to configure pShareon the command
+We have seen some examples on how to configure pShareon the command line (because that is insanely useful) but of course it can also be configured by reading a configuration block in a .moos file just like anyMOOSAppcan. The key parameter names are `Output` which can have the same format as the -o flag on the command line
+or a more verbose form as illustrated below. There can be as many “Output” directives in a configuration block as you need. The verbose form specifies one share per invocation while the compact form specifies as many as you
+wish. The verbose form of the Output directive is a tuple of token value pairs where the tokens are
 
-line (because that is insanely useful) but of course it can also be configured by
-
-reading a configuration block in a .moos file just like anyMOOSAppcan. The
-
-key parameter names are
-
-Outputwhich can have the same format as the -o flag on the command line
-
-```
-or a more verbose as illustrated below. There can be as many “Output”
-directives in a configuration block as you need. The verbose form specifies
-one share per invocation while the compact form specifies as many as you
-wish. The verbose form of the Output directive is a tuple of token value
-pairs where the tokens are
-```
-src_namethe name of the varible ot be shared
-
-```
-dest_namethe name it should have when it arrives at its destination -
-this is optional, if it is not present then no renaming occurs
-```
-```
-routea description of the route which could be for udp shares host-
-name:port:udp or for multicast shares “multicast_X”. This is much
-as it is for the command line configuration.
-```
-Inputwhich can have the same dense format as the -i flag on the command
-
-```
-line as described above or a more verbose, intuitive form illustrated below.
-In the long hand version you use a single token value pair with a token
-name of “route” as described above. This specifies the fashion in which
-this instance of pShare should listen - be that on mulitple ports for udp
-traffic or on a multicast channel for multicast action.
-```
-Listing 1: Configuring pShare from a configuration block
-
+* `src_name` the name of the varible ot be shared
+* `dest_name` the name it should have when it arrives at its destination - this is optional, if it is not present then no renaming occurs
+* `route` a description of the route which could be for udp shares host `name:port:udp` or, for multicast shares,  `multicast_X`. This is much as it is for the command line configuration.
+*Input which can have the same dense format as the -i flag on the command line as described above or a more verbose, intuitive form illustrated below. In the long hand version you use a single token value pair with a token name of “route” as described above. This specifies the fashion in which this instance of pShare should listen - be that on mulitple ports for udp traffic or on a multicast channel for multicast action.
+   
+   
+Here is an example configuration for pShare which you would find in a `.moos` file   
+   
 ```
 ProcessConfig=pShare
 {
-//a verboseway of sharingX, calling itYand sending
-//on mulitcast_
-Output=src_name=X,dest_name=Z,route=multicast_
-```
-```
-//a verboseway of sharingY calling itYYand sending
-//it to port 9832 on this machine
-Output=src_name=Y, dest_name=YY, route=192.6.8.3:
-```
-```
-//a verboseway of sharingT, sending it withoutnamechange
-//to port 9832 on a remote machine
-Output=src_name=T, dest_name=TT, route=192.3.4.5:
-```
-```
-//a dense specificationwhich sendsXto port 10000 via
-//udpon a remotemachine
-//andYto a differentmachine whilerenaming it to ’T’
-Output=X>192.168.0.4:
-```
+   //a verbose way of sharing X, calling itYand sending
+   //on mulitcast_
+   Output=src_name=X,dest_name=Z,route=multicast_
 
-```
-output=Y>T:192.168.0.5:
-```
-```
-//specify inwhat placeswe wish to listen to receive
-//theoutput of other instances of pShare
-```
-```
-//wecan do this one at a time using theroute directive
-Input=route=multicast_
-```
-```
-//orwecan specifiy multiple routes atonce. Note that
-//wehave to usean& character to separate different routes
-//or it lookslike a list ofmalformedtoken value pairs
-Input=route=multicast_21&localhost:9833&multicast_
-```
-```
-//wecan of course alsouse wildcards this is where it gets -
-interesting
-//lets share any varialble in communitywhich is 2 charcters -
-longand begins
-//withX
-Output=src_name=X?,route= localhost:
-```
-```
-//wecould bemore specific and sayweonly want to share -
-such variables from
-//a namedprocess. So herewe say only sharetwo letter -
-variables beginning withQ
-//form a process called procA
-Output=src_name=Q?:procA, route=localhost:
-```
-#### }
+   //a verboseway of sharing Y calling itYYand sending
+   //it to port 9832 on this machine
+   Output=src_name=Y, dest_name=YY, route=192.6.8.3:
 
+   //a verbose way of sharing T, sending it withoutnamechange
+   //to port 9832 on a remote machine
+   Output=src_name=T, dest_name=TT, route=192.3.4.5:
+
+   //a dense specificationwhich sendsXto port 10000 via
+   //udp on a remote machine 
+   Output=X>192.168.0.4:
+   // ...and Y to a different machine while renaming it to ’T’
+   Output=Y>T:192.168.0.5:
+
+   //specify inwhat placeswe wish to listen to receive
+   //the output of other instances of pShare
+   //we can do this one at a time using the route directive
+   Input=route=multicast_
+
+   //or,we can specifiy multiple routes atonce. Note that
+   //we have to usean& character to separate different routes
+   //or it lookslike a list ofmalformedtoken value pairs
+   
+   Input=route=multicast_21&localhost:9833&multicast_
+
+   // we can of course also use wildcards this is where it gets -
+   interesting
+   //lets share any varialble in community which is 2 characters long and begins
+   //with X
+   Output=src_name=X?,route= localhost:
+   
+   //we could be more specific and say we only want to share such variables from
+   //a namedprocess. So herewe say only share two letter - variables beginning with Q
+   //from a process called procA
+   Output=src_name=Q?:procA, route=localhost:
+}
+```
+   
 ## 6 Wildcard Sharing
 
-It won’t have escaped your attention that MOOS-V10 offers support for wild-
+It won’t have escaped your attention that MOOS-V10 offers support for wildcarding -that is specifying a pattern which represents a whole set of named variables. (So for example ‘*’ means all variables because the regular expressions character ‘*’ matches all sets of characters). `pShare` can utilise this functionality to make sharing many variables trivial. You can also specify to only share variables from a specific process.
 
-carding -that is specifying a pattern which represents a whole set of named
-
-variables.(So for example ‘*’ means all variables because the regular expressions
-
-character ‘*’ matches all sets of characters).pSharecan utilise this functional-
-
-ity to make sharing many variables trivial. You can also specify to only share
-
-variables from a specific process.
-
-So lets start with a command line example. We can share all variables in a
-
-community thus:
+So lets start with a command line example. We can share all variables in a community like this:
 
 ```
-description share all variables onto channel 7
-terminal A command line -o=’*->multicast_7’
-terminal B command line -i=multicast_
+// share all variables onto channel 7
+terminal A command line : pShare -o=’*->multicast_7’
+terminal B command line " pShare -i=multicast_
 ```
 And we can be a little more precise and only forward variables which begin
 
@@ -340,24 +287,18 @@ terminal B command line -i=multicast_
 And of course the process name also supports wild cards so we we can do
 
 ```
-description var ending in “time” from a proc starting “camera_”
+// var ending in “time” from a proc starting “camera_”
 terminal A command line -o=’*time:camera_*->multicast_7’
 terminal B command line -i=multicast_
 ```
-A good question is what does it mean to rename a wildcard share? Well
-
-that simply serves as suffix to the shared variable name
+A good question is what does it mean to rename a wildcard share? Well that simply serves as suffix to the shared variable name
 
 ```
-description share all variables onto channel 7 with renaming
+// share all variables onto channel 7 with renaming
 terminal A command line -o=’*->T:multicast_7’
 terminal B command line -i=multicast_
 ```
-which means a variable “X” will be shared as “TX” - the parameter T is
-
-acting as suffix. Similarly a variable called “donkey” would endup being shared
-
-in this example as “Tdonkey”.
+which means a variable “X” will be shared as “TX” - the parameter T is acting as suffix. Similarly a variable called “donkey” would endup being shared in this example as “Tdonkey”.
 
 
 Finally of course wildcard shares can be specified in configuration files as
