@@ -1,5 +1,4 @@
-# Bridging MOOS Communities with pShare
-
+# Connecting MOOS Communities with `pShare`
 
 ## Contents
 
@@ -20,8 +19,7 @@
 
 ## 1 Introduction
 
-MOOS-V10 brings with it a new command line application which allows data to be shared between MOOS communities. Recall that in MOOS parlance a“community”is the set of programs talking to a particular instance of a
-MOOSDB including the MOOSDB itself. In some ways pShare is just a modern, better written version of pMOOSBridge in others it offers much greater flexibility, and functionality. Here is a quick summary of pShare functionality
+MOOS-V10 brings with it a new command line application which allows data to be shared between MOOS communities. Recall that in MOOS parlance a“community”is the set of programs talking to a particular instance of a `MOOSDB` including the `MOOSDB` itself. In some ways `pShare` is just a modern, better written version of pMOOSBridge in others it offers much greater flexibility, and functionality. Here is a quick summary of `pShare` functionality
 
 - it offers UDP communication between communities
 - it can share data over multicast channels
@@ -36,19 +34,17 @@ MOOSDB including the MOOSDB itself. In some ways pShare is just a modern, better
 It is worth, straight offthe bat, understanding how in usage terms, pShare is
 different from pMOOSBridge
 
-- pShare, unlike pMOOSBridge, only supports UDP (or multicast which is a
+- `pShare`, unlike `pMOOSBridge`, only supports UDP (or multicast which is a
     kind of UDP)
-- You need one instance of pShare per community (compare this to pMOOSBridge
-    where a single instance could be used to bridge any number of communi-
-    ties)
-- Currently, pShare only supports sharing of up to 64K messages
+- You need one instance of `pShare` per community (compare this to `pMOOSBridge`
+    where a single instance could be used to bridge any number of communities)
+- Currently, `pShare` only supports sharing of up to 64K messages
 
 ### 1.1 Why UDP?
 
-UDP is, of course, a lossy affair - there is no guarrantee that messages will get through and indeedpShareis intended for use in just such situations. Use pSharewhen you want, when possible, to get messages between communities and yet you don’t mind dropping a few messages. Perhaps this applies when you have a deployed robot out in the wilds and the wireless link simply doesn’t support tcp/ip as well as you might hope. If you do mind loosing things then you must use tcp/ip (standard MOOS) and if you have
+UDP is, of course, a lossy affair - there is no guarrantee that messages will get through and indeedpShareis intended for use in just such situations. Use `pShare` when you want, when possible, to get messages between communities and yet you don’t mind dropping a few messages. Perhaps this applies when you have a deployed robot out in the wilds and the wireless link simply doesn’t support tcp/ip as well as you might hope. If you do mind loosing things then you must use tcp/ip (standard MOOS) and if you have
 a lossy connection you will spend years waiting for data.
 
-[ToDo: insert diagram]
 
 Figure 1: A simple use of pShare: two communities are linked by two instances of pShare - one in each community.
 
@@ -97,11 +93,11 @@ A single mapping contains a direction of a variable name to one or more routes .
 ```
 var_name->route & route & route....
 ```
-where a route has the form
+so a re-direction to a ampersand delimited set of routes. Here a route has the form
 ```
-new_name: destination
+[new_name:]destination
 ```
-and destination is one of
+where `new_name` is a optional new variable name and `destination` is one of
 
 * an address and port pair "address:port"
 * a multicast channel as described later.
@@ -111,65 +107,70 @@ and destination is one of
 The -i switch is much simpler. It tells an instance of pShare how to listen to for incoming traffic. The format is always -i=localhost:<port_num> or i=multicast_<N> where N is a number between 0 and 255. Multiple listens
 can be specified in a comma separated list.
 
-## CommandlineConfiguration
+## Examples Command Line Configuration
 
 Imagine we have two communities A and B. Lets also assume that they reside on different machines. Machine A has ip address 192.168.0.10 and machine B has ip address 192.168.0.4.
 
 ```
 // share X from A to B
-terminal A command line -o=’X->192.168.0.4:10000’
-terminal B command line -i=localhost:
+terminal A command line : pShare -o=’X->192.168.0.4:10000’
+terminal B command line : pShare -i=localhost:100000
 ```
 
 ```
 // share X from A to B as Y
 terminal A command line : pShare -o=’X->Y:192.168.0.4:10000’
-terminal B command line : pShare -i=localhost:
+terminal B command line : pShare -i=localhost:10000
 ```
 ```
 // share X from A to B as X and Y
 terminal A command line : pshare -o=’X->92.168.0.4:10000 & Y:192.168.0.4:10000’
-terminal B command line : pshare -i=localhost:
+terminal B command line : pshare -i=localhost:10000
 ```
 ```
 //share X from A to B as X and Y via two different ports
-terminal A command line : -o=’X->92.168.0.4:10000 & Y:192.168.0.4:20000’
-terminal B command line : -i=localhost:10000,localhost:
+terminal A command line : pshare -o=’X->92.168.0.4:10000 & Y:192.168.0.4:20000’
+terminal B command line : pshare -i=localhost:10000
 ```
 ```
 // share X and Y to B
 terminal A command line : pshare -o=’X->192.168.0.4:10000 , Y->192.168.0.4:10000’
-terminal B command line : pshare -i=localhost:
+terminal B command line : pshare -i=localhost:10000
 ```
 ```
 // share X via multicast
 terminal A command line : pshare -o=’X->multicast_7’
-terminal B command line : pshare -i=multicast_
+terminal B command line : pshare -i=multicast_7
 ```
 ```
 // share X via multicast and rename
 terminal A command line : pshare -o=’X->Y:multicast_7’
-terminal B command line : pshare -i=multicast_
+terminal B command line : pshare -i=multicast_7
 ```
 ```
 // share X on several channels
 terminal A command line : pshare -o=’X->Y:multicast_7 & Z:multicast_3’
-terminal B command line : pshare -i=multicast_
+terminal B command line : pshare -i=multicast_7,multicast_3
 ```
 ```
 // share X via multicast and rename
 terminal A command line : pshare -o=’X->Y:multicast_7’
-terminal B command line : pshare -i=multicast_7,multicast_
+terminal B command line : pshare -i=multicast_7,
 ```
 ```
 // share X as several new variables on the same multicast channel
 terminal A command line : pshare -o=’X->Y:multicast_7 & Z:multicast_7’
-terminal B command line : pshare -i=multicast_
+terminal B command line : pshare -i=multicast_7
 ```
+
+---
+**NOTE**
 Tip:don’t forget to put single quotes around the routing directives to prevent your shell from interpretting the ’>’ character.
 
+---
 
-## Configuring pShare from a moosfile
+
+## Configuring `pShare` from a moosfile
 
 We have seen some examples on how to configure pShareon the command line (because that is insanely useful) but of course it can also be configured by reading a configuration block in a .moos file just like anyMOOSAppcan. The key parameter names are `Output` which can have the same format as the -o flag on the command line
 or a more verbose form as illustrated below. There can be as many “Output” directives in a configuration block as you need. The verbose form specifies one share per invocation while the compact form specifies as many as you
@@ -200,31 +201,32 @@ ProcessConfig=pShare
 
    //a dense specificationwhich sendsXto port 10000 via
    //udp on a remote machine 
-   Output=X>192.168.0.4:
+   Output=X>192.168.0.4:10000
+
    // ...and Y to a different machine while renaming it to ’T’
-   Output=Y>T:192.168.0.5:
+   Output=Y>T:192.168.0.5:10000
 
    //specify inwhat placeswe wish to listen to receive
    //the output of other instances of pShare
    //we can do this one at a time using the route directive
-   Input=route=multicast_
+   Input=route=multicast_6
 
    //or,we can specifiy multiple routes atonce. Note that
    //we have to usean& character to separate different routes
    //or it lookslike a list ofmalformedtoken value pairs
    
-   Input=route=multicast_21&localhost:9833&multicast_
+   Input=route=multicast_21&localhost:9833&multicast_3
 
    // we can of course also use wildcards this is where it gets -
    interesting
    //lets share any varialble in community which is 2 characters long and begins
    //with X
-   Output=src_name=X?,route= localhost:
+   Output=src_name=X?,route= localhost:9021
    
    //we could be more specific and say we only want to share such variables from
    //a namedprocess. So herewe say only share two letter - variables beginning with Q
    //from a process called procA
-   Output=src_name=Q?:procA, route=localhost:
+   Output=src_name=Q?:procA, route=localhost:9021
 }
 ```
    
@@ -232,92 +234,78 @@ ProcessConfig=pShare
 
 It won’t have escaped your attention that MOOS-V10 offers support for wildcarding -that is specifying a pattern which represents a whole set of named variables. (So for example ‘*’ means all variables because the regular expressions character ‘*’ matches all sets of characters). `pShare` can utilise this functionality to make sharing many variables trivial. You can also specify to only share variables from a specific process.
 
-So lets start with a command line example. We can share all variables in a community like this:
+So let us start with a command line example. We can share all variables in a community like this:
 
 ```
 // share all variables onto channel 7
 terminal A command line : pShare -o=’*->multicast_7’
-terminal B command line " pShare -i=multicast_
+terminal B command line : pShare -i=multicast_7
 ```
-And we can be a little more precise and only forward variables which begin
-
-with the letters “SP”
-
+And we can be a little more precise and only forward variables which begin with the letters “SP”
 
 ```
-description share all variables onto channel 7 which begin with “SP”
-terminal A command line -o=’SP*->multicast_7’
-terminal B command line -i=multicast_
+// share all variables onto channel 7 which begin with “SP”
+terminal A command line : pShare -o=’SP*->multicast_7’
+terminal B command line : pShare -i=multicast_7
 ```
 or which begin with “K” end with “X” followed by any single character
 
 ```
-description starting with X ending with a K plus 1 character
-terminal A command line -o=’X*K?->multicast_7’
-terminal B command line -i=multicast_
+// starting with X ending with a K plus 1 character
+terminal A command line : pShare -o=’X*K?->multicast_7’
+terminal B command line : pShare -i=multicast_7
 ```
-We can also be explict about which processes we want to forward from. So
-
-for example say we just wanted to forward messages from teh process called
-
-“GPS”:
+We can also be explict about which processes we want to forward from. So for example say we just wanted to forward messages from teh process called “GPS”:
 
 ```
-description share all variables from “GPS” onto channel 7
-terminal A command line -o=’*:GPS->multicast_7’
-terminal B command line -i=multicast_
+// share all variables from “GPS” onto channel 7
+terminal A command line : pShare -o=’*:GPS->multicast_7’
+terminal B command line : pShare -i=multicast_
 ```
 And of course the process name also supports wild cards so we we can do
 
 ```
 // var ending in “time” from a proc starting “camera_”
-terminal A command line -o=’*time:camera_*->multicast_7’
-terminal B command line -i=multicast_
+terminal A command line : pShare  -o=’*time:camera_*->multicast_7’
+terminal B command line : pShare  -i=multicast_7
 ```
 A good question is what does it mean to rename a wildcard share? Well that simply serves as suffix to the shared variable name
 
 ```
 // share all variables onto channel 7 with renaming
-terminal A command line -o=’*->T:multicast_7’
-terminal B command line -i=multicast_
+terminal A command line : pShare -o=’*->T:multicast_7’
+terminal B command line : pShare -i=multicast_7
 ```
-which means a variable “X” will be shared as “TX” - the parameter T is acting as suffix. Similarly a variable called “donkey” would endup being shared in this example as “Tdonkey”.
+which means a variable “X” will be shared as “TX” - the parameter T is acting as suffix. Similarly a variable called “donkey” would end up being shared in this example as “Tdonkey”.
 
 
-Finally of course wildcard shares can be specified in configuration files as
-
-shown below.
+Finally, of course wildcard shares can be specified in configuration files as shown below.
 
 ```
-Configuring pShare from a configuration block
 ProcessConfig=pShare
 {
-//we can of course also use wildcards this is where it gets interesting. Lets share any varialble incommunity which is 2 characters long and begins withX
-Output= src_name=X?,route=localhost:
-```
-```
-//wecould bemore specificand sayweonlywant to share -
-such variables from
-//a namedprocess. So herewe say onlysharetwo letter -
-variables beginning withQ
-//form a process called procA
-Output= src_name=Q?:procA, route=localhost:
-```
-```
-//wecan be more general and sendany variable beginning with -
-Wfomra process
-//whos nameends inAto multicast channel 7
-Output=src_name=W⇤:⇤A, route= multicast_
+    //we can of course also use wildcards this is where it gets interesting. 
+    //Lets share any varialble incommunity which is 2 characters long and begins with X
+    Output= src_name=X?,route=localhost:9021
+    
+    //we could be more specificand sayweonlywant to share such variables from a namedprocess. 
+    //So here we say only share two letter variables beginning with Q
+    //from a process called procA
+    Output= src_name=Q?:procA, route=localhost:9021
+
+    //we can be more general and sendany variable beginning with W proim a process
+    //whos name ends in A to multicast channel 7
+    Output=src_name=W⇤:⇤A, route= multicast_7
 }
 ```
 ### Caret Sharing: A Special Case of Wildcard Sharing
 
-pShare supports a special case of wildcard sharing in that it can forward a variable under a new name where the new name is derived from the part of the original name which matches a ’*’ wildcard charcter. Granted this sounds complicated. Its easiest to understand this with a few examples. The important point to remember though is the syntax for this special case it is*<str>->^or <str>*->^where <str> is any string that does not contain a * or ?.
+pShare supports a special case of wildcard sharing in that it can forward a variable under a new name where the new name is derived from the part of the original name which matches a `*` wildcard charcter. Granted this sounds complicated. Its easiest to understand this with a few examples. The important point to remember though is the syntax for this special case it is `*<str>->^` or `<str>*->^` where `<str>` is any string that does not contain a * or ?.
 
 ```
 // A_X gets shared as A on multicast 7
 terminal A command line -o=’*_X->^:multicast_7’
-terminal B command line -i=multicast_
+terminal B command line -i=multicast_7
 ```
 Note in that in the kind of sharing the ’^’ means the part of the variable name which matches the single ’*’ wildcard character on the src filter. This wildcard character can only occur at the beginning or teh end of the variable pattern. So we can also have:
 
@@ -325,19 +313,23 @@ Note in that in the kind of sharing the ’^’ means the part of the variable n
 ```
 // A_X gets shared as X on multicast 7
 terminal A command line -o=’A_*->^:multicast_7’
-terminal B command line -i=multicast_
+terminal B command line -i=multicast_7
 ```
    
 ## Instigating Dynamic Shares On The Fly
 
-pShare can be told to start sharing data dynamically by any MOOS Process simply by publishing a correctly formatted string. The format is simple - its is pretty much the same as a line in a configuration file. You need to write a string“cmd = <directive>” to the variablePSHARE_CMDwhere<directive> is a output or input directive such as you would write in a configuration file.
+`pShare` can be told to start sharing data dynamically by any MOOS Process simply by publishing a correctly formatted string. The format is simple - it is pretty much the same as a line in a configuration file. You need to write a string `cmd = <directive>` to the variable `PSHARE_CMD` where `<directive>` is a output or input directive such as you would write in a configuration file. (see all of this document)
 
-Here are some examples:
+Here are some examples of strings written uner the message name `PSHARE_CMD`
 
-- “cmd = Output , src_name = X?, route = localhost:9021”
-- “ cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832”
+- `cmd = Output , src_name = X?, route = localhost:9021`
+- `cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832`
+
+---
+*NOTE*
 
 The ability to dynamically instigate shares turns out to be very useful if you don’t know what needs to be shared whenpSharefirst starts and that only gets figured out by other processes.
 
+---
 
 
