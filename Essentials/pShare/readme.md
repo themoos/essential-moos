@@ -2,6 +2,8 @@
 
 ## Contents
 
+__TOC__
+
 - 1 Introduction
    - 1.1 Why UDP?
 - 2 Basic Operation
@@ -10,8 +12,8 @@
 - 3 The form of command line configuration strings
    - 3.1 Output
    - 3.2 Input
-- 4 CommandlineConfiguration
-- 5 ConfiguringpSharefroma.moosfile
+- 4 Command Line Configuration
+- 5 Configuring `pShare`from a .moos file
 - 6 Wildcard Sharing
    - 6.1 Caret Sharing: A Special Case of Wildcard Sharing
 - 7 Instigating Dynamic Shares On The Fly
@@ -170,34 +172,67 @@ Tip:don’t forget to put single quotes around the routing directives to prevent
 ---
 
 
-## Configuring `pShare` from a moosfile
+## Configuring `pShare` from a moos file
 
-We have seen some examples on how to configure pShareon the command line (because that is insanely useful) but of course it can also be configured by reading a configuration block in a .moos file just like anyMOOSAppcan. The key parameter names are `Output` which can have the same format as the -o flag on the command line
-or a more verbose form as illustrated below. There can be as many “Output” directives in a configuration block as you need. The verbose form specifies one share per invocation while the compact form specifies as many as you
-wish. The verbose form of the Output directive is a tuple of token value pairs where the tokens are
+We have seen some examples on how to configure pShareon the command line (because that is insanely useful) but of course it can also be configured by reading a configuration block in a .moos file just like anyMOOSAppcan. The key parameter names are `Output` which can have the same format as the -o flag on the command line or a more verbose form as illustrated below. 
+
+### ``Output`` directives
+There can be as many “Output” directives in a configuration block as you need. The verbose form specifies one "share" per invocation while the compact form specifies as many as you
+wish. 
+
+The verbose form of the Output directive is a tuple of token value pairs where the tokens are
 
 * `src_name` the name of the varible ot be shared
 * `dest_name` the name it should have when it arrives at its destination - this is optional, if it is not present then no renaming occurs
 * `route` a description of the route which could be for udp shares host `name:port:udp` or, for multicast shares,  `multicast_X`. This is much as it is for the command line configuration.
-*Input which can have the same dense format as the -i flag on the command line as described above or a more verbose, intuitive form illustrated below. In the long hand version you use a single token value pair with a token name of “route” as described above. This specifies the fashion in which this instance of pShare should listen - be that on mulitple ports for udp traffic or on a multicast channel for multicast action.
-   
+* `duration` the length of time since creation that a share is active for. If this is dynamically created share (see later) the time window starts at the time the directive is received. If the share is configured via a .moos file, then the window starts at process boot time.  If `duration` is not specified the share is eternal
+* `max_shares` the maximum number of times a share directive will operate, for example `max_shares=3` means this directive will only share teh variable in question 3 times. If `max_shares` is not specified the number of shares is limitless.
+
+### ``Input`` directives
+
+The ``Input`` directive  can have the same dense format as the -i flag on the command line as described above or a more verbose, intuitive form illustrated below. In the long hand version you use a single token value pair with a compulsory token name of `route` as described above. This specifies the fashion in which this instance of pShare should listen - be that on mulitple ports for udp traffic or on a multicast channel for multicast action.
+
+
+Additionally the long form (verbose) for  `Input` directive supports a the follwing additional modifiers
+
+* ``white_list=<template_mask_list>`` directive. Where <template_mask_list> is an ampersand list of variable name masks. For example ``white_list = foo & bar`` configures this input directive to only import variables caller `foo` and `bar`. The masks can also be simple regex expressions using * and ?. For example  `white_list = foo* & ?bar` will import any variable beginning with `foo` and any 4 letter variable ending in `bar`.
+
+
+---
+*NOTE*
+
+The `max_shares` , `duration` and `white_list` modifiers are *ONLY* available in the verbose (long form) output and input directives. They are not avaiable on the command line.
+
+---
+
+
+### Examples
    
 Here is an example configuration for pShare which you would find in a `.moos` file   
    
 ```
 ProcessConfig=pShare
 {
-   //a verbose way of sharing X, calling itYand sending
+   //a verbose way of sharing X, calling it Y and sending
    //on mulitcast_
-   Output=src_name=X,dest_name=Z,route=multicast_
+   Output=src_name=X,dest_name=Z,route=multicast_8
 
-   //a verboseway of sharing Y calling itYYand sending
+   //a verbose way of sharing W, calling it W2 and sending
+   //on mulitcast_8 but only TWICE
+   Output=src_name=W,dest_name=W2,route=multicast_8, max_shares = 2
+
+   //a verbose way of sharing U, calling it U and sending
+   //on mulitcast_8 but only for 1 minute
+   Output=src_name=W,dest_name=W2,route=multicast_8, duration = 60
+
+
+   //a verbose way of sharing Y calling it YY and sending
    //it to port 9832 on this machine
-   Output=src_name=Y, dest_name=YY, route=192.6.8.3:
+   Output=src_name=Y, dest_name=YY, route=localhost:9832
 
-   //a verbose way of sharing T, sending it withoutnamechange
+   //a verbose way of sharing T, sending it without name change
    //to port 9832 on a remote machine
-   Output=src_name=T, dest_name=TT, route=192.3.4.5:
+   Output=src_name=T, dest_name=TT, route=192.3.4.5:9832
 
    //a dense specificationwhich sendsXto port 10000 via
    //udp on a remote machine 
