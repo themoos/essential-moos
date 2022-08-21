@@ -21,7 +21,7 @@ namespace MOOS {
 class Listener {
 public:
 
-	Listener(SafeList<CMOOSMsg> & queue, const MOOS::IPV4Address & address,bool multicast);
+	Listener(SafeList<CMOOSMsg> & queue, const MOOS::IPV4Address & address,bool multicast, const std::vector<std::string> & white_list);
 	virtual ~Listener();
 	bool Run();
 	std::string host(){return address_.host();};
@@ -29,12 +29,15 @@ public:
 	bool multicast(){return multicast_;};
 protected:
 	bool ListenLoop();
+	bool IsWanted(const CMOOSMsg & msg);
 	CMOOSThread thread_;
 	SafeList<CMOOSMsg > & queue_;
 
 	IPV4Address address_;
 
 	bool multicast_;
+
+	std::vector<std::string> white_list_;
 
 public:
 	static bool dispatch(void * pParam)

@@ -25,13 +25,11 @@ namespace MOOS {
 
 Listener::Listener(SafeList<CMOOSMsg> & queue,
 		const MOOS::IPV4Address & address,
-		bool multicast):queue_(queue), address_(address),multicast_(multicast) {
-	// TODO Auto-generated constructor stub
-
+		bool multicast, const std::vector<std::string> & white_list):
+			queue_(queue), address_(address),multicast_(multicast),white_list_(white_list) {	
 }
 
 Listener::~Listener() {
-	// TODO Auto-generated destructor stub
 }
 
 
@@ -113,9 +111,10 @@ bool Listener::ListenLoop()
 				CMOOSMsg msg;
 				msg.Serialize(incoming_buffer.data(), incoming_buffer.size(), false);
 
-
-				//push onto queue
-				queue_.Push(msg);
+				if(IsWanted(msg)){
+					//push onto queue
+					queue_.Push(msg);
+				}
 			}
 
 		}
@@ -137,5 +136,25 @@ bool Listener::ListenLoop()
 	return true;
 
 }
+
+struct  WhiteListMatcher{
+	WhiteListMatcher(const CMOOSMsg & msg ): m_(msg){}
+	bool operator()(const std::string & s){
+		return MOOSWildCmp(s,m_.GetName());
+	}
+	const CMOOSMsg & m_;
+};
+
+bool Listener::IsWanted(const CMOOSMsg & msg){
+	if(white_list_.empty()){
+		return true;
+	}else{
+		WhiteListMatcher matcher(msg);
+		return std::any_of(white_list_.begin(),white_list_.end(),matcher);
+	}
+
+}
+
+
 
 }

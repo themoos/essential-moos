@@ -69,7 +69,7 @@ protected:
 
 	bool AddOutputRoute(MOOS::IPV4Address address, bool multicast = true);
 
-	bool AddInputRoute(MOOS::IPV4Address address, bool multicast = true);
+	bool AddInputRoute(MOOS::IPV4Address address, const std::vector<std::string> & white_list, bool multicast = true);
 
 	bool PublishSharingStatus();
 
@@ -159,7 +159,7 @@ Share::~Share()
 
 
 
-bool Share::Impl::AddInputRoute(MOOS::IPV4Address address , bool multicast)
+bool Share::Impl::AddInputRoute(MOOS::IPV4Address address , const std::vector<std::string> & white_list, bool multicast)
 {
 
 	if(listeners_.find(address)!=listeners_.end())
@@ -174,7 +174,8 @@ bool Share::Impl::AddInputRoute(MOOS::IPV4Address address , bool multicast)
 	//OK looking good, make it
 	listeners_[address] = new Listener(incoming_queue_,
 			address,
-			multicast);
+			multicast,
+			white_list);
 
 	//run it
 	return listeners_[address]->Run();
@@ -486,6 +487,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 
 	std::string src_name, dest_name, routes;
+	std::vector<std::string> white_list;
 	double duration = -1;
 	int max_shares = -1;
 
@@ -503,6 +505,16 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 
 		MOOSValFromString(duration,configuration_string,"duration");
 		MOOSValFromString(max_shares,configuration_string,"max_shares");
+	}else{
+		//we may have a white list being supplied. Such a list gives the 
+		//patterns which must be matched if a message is to be imported
+		//into the community this pShare belongs to. It is made from
+		//a & separated list. eg ..,white_list = X&Y&Z,...
+		std::string swl;
+		MOOSValFromString(swl,configuration_string,"white_list");
+		if(!swl.empty()){
+			white_list = MOOS::StringListToVector(swl,"&");
+		}
 	}
 
 	//we do need a route....
@@ -541,7 +553,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 			}
 			else
 			{
-				if (!AddInputRoute(GetAddressFromChannelAlias(channel_num),
+				if (!AddInputRoute(GetAddressFromChannelAlias(channel_num),white_list,
 						true))
 					return false;
 			}
@@ -558,7 +570,7 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 			}
 			else
 			{
-				if (!AddInputRoute(route_address, false))
+				if (!AddInputRoute(route_address, white_list,false))
 				{
 					return false;
 				}
