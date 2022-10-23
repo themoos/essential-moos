@@ -26,9 +26,6 @@ Route::~Route() {
 	// TODO Auto-generated destructor stub
 }
 
-void Route::SetCreationTime(const double time_now){
-	creation_time = time_now;
-}
 
 bool Route::IsActive(const double time_now){
 
@@ -57,11 +54,12 @@ std::string Route::to_string() const
 	ss<<"ShareInfo:\n"
 			<<"add: "<<dest_address.to_string()<<std::endl
 			<<"dest_name: "<<dest_name<<std::endl
-			<<"src_name: "<<src_name<<std::endl
+			<<"src_name : "<<src_name<<std::endl
 			<<"multicast: "<<multicast<<std::endl
 	        <<"frequency: "<<frequency<<std::endl;
-
-
+			<<"duration : "<<duration<<std::endl;
+			<<"maxshares: "<<max_shares<<std::endl;
+			
 	return ss.str();
 }
 
