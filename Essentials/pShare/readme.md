@@ -364,7 +364,7 @@ Every time a share directive is processed the maximum number of shares permitted
 
 So concretely sending 
 - `cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832, max_shares=7, duration = 5`
-and then 2 seconds later sending
+and then 2 seconds later sending a similar share directive but with changed parameters...
 - `cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832, max_shares=3, duration = 15`
 will result in a share configured to last at most 15 seconds and at most, 3 shares of a varibale called T, which is reposted as a variable called `TT` on `route=192.3.4.5:9832`
 
