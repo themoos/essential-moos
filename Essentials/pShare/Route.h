@@ -22,6 +22,7 @@ public:
 	Route();
 	virtual ~Route();
 	bool IsActive(const double time_now);
+	void SetCreationTime(const double time_now);
 
 	bool operator==(const Route & r) const;
 	MOOS::IPV4Address dest_address;

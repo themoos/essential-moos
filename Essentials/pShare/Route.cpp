@@ -26,14 +26,14 @@ Route::~Route() {
 	// TODO Auto-generated destructor stub
 }
 
+void Route::SetCreationTime(const double time_now){
+	creation_time = time_now;
+}
 
 bool Route::IsActive(const double time_now){
 
 	//has the allowable share window passed?
-	//if <0 then no limit has been set;
-
-	std::cout<<"duration_of_share "<<duration_of_share<<"\n";
-
+	//if <0 then no limit has been set;	
 	if(duration_of_share >=0.0 && time_now-creation_time > duration_of_share){
 		return false;
 	}
@@ -44,7 +44,7 @@ bool Route::IsActive(const double time_now){
 		return false;
 	}
 
-	//is the immediate frequence of shares too high?
+	//is the immediate frequency of shares too high?
 	if(frequency>0.0 && time_now-last_time_sent<(1.0/frequency)){
 		return false;
 	}

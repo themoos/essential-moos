@@ -751,15 +751,27 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		route.max_shares= max_shares;
 
 		std::list<Route> & rlist = routing_table_[trimed_src_name];
-
+		
 		//check we have not already got this exact same route....
-		if(find(rlist.begin(), rlist.end(),route)==rlist.end())
+		//invokes == operator on type Route.
+		std::list<Route>::iterator q = find(rlist.begin(), rlist.end(),route);
+		
+		if(q==rlist.end())
 		{
 			//this is a regular share....
 			Register(trimed_src_name, 0.0);
 
 			//add this to our routing table
 			rlist.push_back(route);
+		}else{
+			//OK so we have already been told about this route already
+			//but as of 2022 Oct restating a share where a duration is >0
+			//resets the timer and all other attributes
+			if(verbose_){
+				std::cout<<" refreshing route information for "<< q->to_string()<<"\n";
+			}
+			//do the copy
+			*q=route;
 		}
 	}
 	else
