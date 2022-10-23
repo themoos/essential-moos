@@ -15,9 +15,12 @@ INSTALL(TARGETS ${EXECNAME}
 )
 
 #copy resources
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/pshare_test_scripts DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+# file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/pshare_test_scripts DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-
-add_custom_command(TARGET pShare POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                       ${CMAKE_SOURCE_DIR}/pshare_test_scripts ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/pshare_test_scripts)
+  add_custom_command(TARGET pShare POST_BUILD
+                     COMMAND ${CMAKE_COMMAND} -E copy_directory
+                         ${CMAKE_CURRENT_SOURCE_DIR}/pshare_test_scripts ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
+else()
+  message(WARNING " could not copy pshare test scripts to  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+endif()
