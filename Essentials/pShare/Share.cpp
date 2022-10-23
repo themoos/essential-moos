@@ -793,17 +793,20 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		if(!trimed_src_name.empty())
 			app_pattern = trimed_src_name;
 
-
 		std::list<Route> & rlist = wildcard_routing_table_[std::make_pair(var_pattern,app_pattern)];
 
+
 		//check we have not already got this exact same route....
-		if(find(rlist.begin(), rlist.end(),route)==rlist.end())
+		std::list<Route>::iterator q = find(rlist.begin(), rlist.end(),route);
+		if(q==rlist.end())
 		{
 			//do a wildcard registration
 			Register(var_pattern,app_pattern,0.0);
 
 			//add this to wildcard routing table
 			rlist.push_back(route);
+		}else{
+			*q=route;
 		}
 	}
 
