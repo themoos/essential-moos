@@ -201,7 +201,7 @@ Additionally the long form (verbose) for  `Input` directive supports a the follw
 ---
 *NOTE*
 
-The `max_shares` , `duration` and `white_list` modifiers are *ONLY* available in the verbose (long form) output and input directives. They are not avaiable on the command line.
+The `max_shares` , `duration` and `white_list` modifiers are *ONLY* available in the verbose (long form) output and input directives. They are not avaiable on the command line. 
 
 ---
 
@@ -360,10 +360,18 @@ Here are some examples of strings written uner the message name `PSHARE_CMD`
 - `cmd = Output , src_name = X?, route = localhost:9021`
 - `cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832`
 
+Every time a share directive is processed the maximum number of shares permitted allowed and the share duration is reset (if of course these parameters are specified) 
+
+So concretely sending 
+- `cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832, max_shares=7, duration = 5`
+and then 2 seconds later sending
+- `cmd = Output , src_name =T, dest_name = TT, route=192.3.4.5:9832, max_shares=3, duration = 15`
+will result in a share configured to last at most 15 seconds and at most, 3 shares of a varibale called T, which is reposted as a variable called `TT` on `route=192.3.4.5:9832`
+
 ---
 *NOTE*
 
-The ability to dynamically instigate shares turns out to be very useful if you don’t know what needs to be shared whenpSharefirst starts and that only gets figured out by other processes.
+The ability to dynamically instigate shares turns out to be very useful if you don’t know what needs to be shared when `pShare` first starts and that only gets figured out by other processes.
 
 ---
 
