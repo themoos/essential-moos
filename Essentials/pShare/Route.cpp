@@ -56,8 +56,8 @@ std::string Route::to_string() const
 			<<"dest_name: "<<dest_name<<std::endl
 			<<"src_name : "<<src_name<<std::endl
 			<<"multicast: "<<multicast<<std::endl
-	        <<"frequency: "<<frequency<<std::endl;
-			<<"duration : "<<duration<<std::endl;
+	        <<"frequency: "<<frequency<<std::endl
+			<<"duration : "<<duration_of_share<<std::endl
 			<<"maxshares: "<<max_shares<<std::endl;
 			
 	return ss.str();
