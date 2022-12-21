@@ -16,7 +16,6 @@ ProcessConfig=ShareA
 	Output = Y->localhost:9021@1,duration = 10
 	Output = Z->Z2:localhost:9021,duration = 10
 	Verbose=true
-	
 }
 
 ProcessConfig=ShareB
