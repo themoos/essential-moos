@@ -376,3 +376,12 @@ The ability to dynamically instigate shares turns out to be very useful if you d
 ---
 
 
+## Dynamic Shares with duration=0
+
+`pShare` supports a special case of dynamic sharing where `duration=0`. In this case `pShare` will publish, just once, the specified `src_name` variable. It will do this even if `pShare` has not previously subsribed to this variable and it will also publish the variable if it was written to by the community (ie resides in the DB) before pShare started. In this sense `pShare` does not wait for the variable to be written to before sharing. When it recieves a dynamic sharing directive with `duration=0`, `pShare` will share whatever the latest knowldege on the variable is at the point the directive waw received. Note `pShare` does this is in a memory effcient way, it does not do the obvious and dumb thing, and subscribe to all varaibles just in case a `duration=-0` is received.
+
+
+
+
+
+

@@ -17,7 +17,7 @@ Route::Route() {
     last_time_sent = 0.0;
     frequency   = 0.0;
 	duration_of_share = -1.0; 
-	max_shares = -1.0;
+	max_shares = 0;
 	num_shares_completed = 0;
 	creation_time = Time();
 }
@@ -28,6 +28,11 @@ Route::~Route() {
 
 
 bool Route::IsActive(const double time_now){
+
+	//special duration=0 share
+	if(duration_of_share==0.0 && num_shares_completed < max_shares){
+		return true;
+	}
 
 	//has the allowable share window passed?
 	//if <0 then no limit has been set;	

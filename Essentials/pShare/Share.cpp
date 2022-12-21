@@ -221,11 +221,6 @@ bool Share::Impl::OnProcessCommandLine()
     base_address_.set_host (address);
 
 
-
-	verbose_ = GetFlagFromCommandLineOrConfigurationFile("verbose");
-
-	//verbose_ = m_CommandLineParser.GetFlag("--verbose");
-
 	verbose_ = GetFlagFromCommandLineOrConfigurationFile("verbose");
 
 	std::string sVar;
@@ -494,7 +489,6 @@ bool Share::Impl::ProcessIOConfigurationString(std::string  configuration_string
 	MOOSRemoveChars(configuration_string, " ");
 
 	if (is_output) {
-		MOOSTrace(configuration_string);
 		if (!MOOSValFromString(src_name, configuration_string, "src_name"))
 			throw std::runtime_error(
 					"ProcessIOConfigurationString \"src_name\" is a required field");
@@ -607,6 +601,8 @@ bool Share::Impl::Iterate()
 		}
 	}
 
+	
+
 	PublishSharingStatus();
 	return true;
 }
@@ -673,6 +669,7 @@ bool Share::Impl::PublishSharingStatus()
 	return true;
 }
 
+
 bool Share::Impl::OnNewMail(MOOSMSG_LIST & new_mail)
 {
 	MOOSMSG_LIST::iterator q;
@@ -682,6 +679,7 @@ bool Share::Impl::OnNewMail(MOOSMSG_LIST & new_mail)
 	{
 		//do we need to forward it
 		RouteMap::iterator g = routing_table_.find(q->GetKey());
+		std::cerr<<"pShare tx "<<q->GetKey()<<"\n";
 		try
 		{
 			if(g != routing_table_.end())
@@ -735,10 +733,6 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 	std::string trimed_src_name = trim(src_name);
 	std::string trimed_dest_name = trim(dest_name);
 
-
-
-
-
 	if(trimed_src_name.find_last_of("*?:")==std::string::npos)
 	{
 		Route route;
@@ -759,6 +753,7 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		if(q==rlist.end())
 		{
 			//this is a regular share....
+			//and it is the first we have heard of it
 			Register(trimed_src_name, 0.0);
 
 			//add this to our routing table
@@ -770,9 +765,28 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 			if(verbose_){
 				std::cout<<" refreshing route information for "<< q->to_string()<<"\n";
 			}
+
+			if(duration==0.0){
+				//this is a special case requested by mikerb 2022. For non-wildcard shares
+				//if duration = 0, then send just once what ever is latest in DB
+				//We can make this happen
+				//by unregistering (does nothing if not registered) and then registering
+
+				if(verbose_){
+					std::cout<<" spoecial case duration = 0 forcing refresh from db "<< q->to_string()<<"\n";
+				}
+
+				UnRegister(trimed_src_name);
+				Register(trimed_src_name, 0.0);
+
+				route.max_shares = 1;
+				route.duration_of_share = std::numeric_limits<double>::max();
+			}
+
 			//do the copy
 			*q=route;
 		}
+
 	}
 	else
 	{
@@ -786,6 +800,10 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 		route.dest_name = trimed_dest_name;
 		route.dest_address = address;
 		route.multicast = multicast;
+		route.frequency = frequency;
+		route.duration_of_share = duration;
+		route.max_shares= max_shares;
+
 
 		//this looks like a wildcard share
 		std::string var_pattern = MOOS::Chomp(trimed_src_name,":");
@@ -795,13 +813,13 @@ bool  Share::Impl::AddRoute(const std::string & src_name,
 
 		std::list<Route> & rlist = wildcard_routing_table_[std::make_pair(var_pattern,app_pattern)];
 
-
 		//check we have not already got this exact same route....
 		std::list<Route>::iterator q = find(rlist.begin(), rlist.end(),route);
 		if(q==rlist.end())
 		{
 			//do a wildcard registration
 			Register(var_pattern,app_pattern,0.0);
+
 
 			//add this to wildcard routing table
 			rlist.push_back(route);
@@ -856,6 +874,8 @@ bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 	if(!Msg.IsYoungerThan(GetAppStartTime()))
 		return false;
 
+	std::cerr<<"OnCommandMsg : "<<Msg.GetString()<<"\n";
+
 	std::string cmd;
 	MOOSValFromString(cmd,Msg.GetString(),"cmd");
 
@@ -878,6 +898,7 @@ bool Share::Impl::OnCommandMsg(CMOOSMsg  Msg)
 		}
 		else
 		{
+			MOOSTrace(cmd);
 			throw std::runtime_error("cmd=X - X was neither \"output\" or \"input\"\n");
 		}
 	}
@@ -1084,6 +1105,8 @@ bool Share::Impl::ApplyWildcardRoutes( CMOOSMsg& msg)
 
 bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 {
+
+	std::cerr<<"applying route for "<<msg.GetString()<<"\n";
 	//do we know how to route this? double check
 	RouteMap::iterator g = routing_table_.find(msg.GetKey());
 	if(g == routing_table_.end())
@@ -1097,6 +1120,9 @@ bool Share::Impl::ApplyRoutes(CMOOSMsg & msg)
 	std::list<Route>::iterator q;
 	for(q = route_list.begin();q!=route_list.end();q++)
 	{
+		std::cerr<<"checking route  "<<q->to_string()<<"\n";
+
+		
 		//process every route
 		Route & route = *q;
 

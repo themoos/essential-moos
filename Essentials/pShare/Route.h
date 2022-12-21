@@ -33,8 +33,8 @@ public:
 	double last_time_sent;
 	double duration_of_share;
 	double creation_time;
-	int num_shares_completed;
-	int max_shares;
+	unsigned int num_shares_completed;
+	unsigned int max_shares;
 
 };
 
