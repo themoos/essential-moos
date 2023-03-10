@@ -115,53 +115,53 @@ Imagine we have two communities A and B. Lets also assume that they reside on di
 
 ```
 // share X from A to B
-terminal A command line : pShare -o=’X->192.168.0.4:10000’
+terminal A command line : pShare -o='X->192.168.0.4:10000'
 terminal B command line : pShare -i=localhost:100000
 ```
 
 ```
 // share X from A to B as Y
-terminal A command line : pShare -o=’X->Y:192.168.0.4:10000’
+terminal A command line : pShare -o='X->Y:192.168.0.4:10000'
 terminal B command line : pShare -i=localhost:10000
 ```
 ```
 // share X from A to B as X and Y
-terminal A command line : pshare -o=’X->92.168.0.4:10000 & Y:192.168.0.4:10000’
+terminal A command line : pshare -o='X->92.168.0.4:10000 & Y:192.168.0.4:10000'
 terminal B command line : pshare -i=localhost:10000
 ```
 ```
 //share X from A to B as X and Y via two different ports
-terminal A command line : pshare -o=’X->92.168.0.4:10000 & Y:192.168.0.4:20000’
+terminal A command line : pshare -o='X->92.168.0.4:10000 & Y:192.168.0.4:20000'
 terminal B command line : pshare -i=localhost:10000
 ```
 ```
 // share X and Y to B
-terminal A command line : pshare -o=’X->192.168.0.4:10000 , Y->192.168.0.4:10000’
+terminal A command line : pshare -o='X->192.168.0.4:10000 , Y->192.168.0.4:10000'
 terminal B command line : pshare -i=localhost:10000
 ```
 ```
 // share X via multicast
-terminal A command line : pshare -o=’X->multicast_7’
+terminal A command line : pshare -o='X->multicast_7'
 terminal B command line : pshare -i=multicast_7
 ```
 ```
 // share X via multicast and rename
-terminal A command line : pshare -o=’X->Y:multicast_7’
+terminal A command line : pshare -o='X->Y:multicast_7'
 terminal B command line : pshare -i=multicast_7
 ```
 ```
 // share X on several channels
-terminal A command line : pshare -o=’X->Y:multicast_7 & Z:multicast_3’
+terminal A command line : pshare -o='X->Y:multicast_7 & Z:multicast_3'
 terminal B command line : pshare -i=multicast_7,multicast_3
 ```
 ```
 // share X via multicast and rename
-terminal A command line : pshare -o=’X->Y:multicast_7’
+terminal A command line : pshare -o='X->Y:multicast_7'
 terminal B command line : pshare -i=multicast_7,
 ```
 ```
 // share X as several new variables on the same multicast channel
-terminal A command line : pshare -o=’X->Y:multicast_7 & Z:multicast_7’
+terminal A command line : pshare -o='X->Y:multicast_7 & Z:multicast_7'
 terminal B command line : pshare -i=multicast_7
 ```
 
@@ -238,7 +238,7 @@ ProcessConfig=pShare
    //udp on a remote machine 
    Output=X>192.168.0.4:10000
 
-   // ...and Y to a different machine while renaming it to ’T’
+   // ...and Y to a different machine while renaming it to 'T'
    Output=Y>T:192.168.0.5:10000
 
    //specify inwhat placeswe wish to listen to receive
@@ -273,42 +273,42 @@ So let us start with a command line example. We can share all variables in a com
 
 ```
 // share all variables onto channel 7
-terminal A command line : pShare -o=’*->multicast_7’
+terminal A command line : pShare -o='*->multicast_7'
 terminal B command line : pShare -i=multicast_7
 ```
 And we can be a little more precise and only forward variables which begin with the letters “SP”
 
 ```
 // share all variables onto channel 7 which begin with “SP”
-terminal A command line : pShare -o=’SP*->multicast_7’
+terminal A command line : pShare -o='SP*->multicast_7'
 terminal B command line : pShare -i=multicast_7
 ```
 or which begin with “K” end with “X” followed by any single character
 
 ```
 // starting with X ending with a K plus 1 character
-terminal A command line : pShare -o=’X*K?->multicast_7’
+terminal A command line : pShare -o='X*K?->multicast_7'
 terminal B command line : pShare -i=multicast_7
 ```
 We can also be explict about which processes we want to forward from. So for example say we just wanted to forward messages from teh process called “GPS”:
 
 ```
 // share all variables from “GPS” onto channel 7
-terminal A command line : pShare -o=’*:GPS->multicast_7’
+terminal A command line : pShare -o='*:GPS->multicast_7'
 terminal B command line : pShare -i=multicast_
 ```
 And of course the process name also supports wild cards so we we can do
 
 ```
 // var ending in “time” from a proc starting “camera_”
-terminal A command line : pShare  -o=’*time:camera_*->multicast_7’
+terminal A command line : pShare  -o='*time:camera_*->multicast_7'
 terminal B command line : pShare  -i=multicast_7
 ```
 A good question is what does it mean to rename a wildcard share? Well that simply serves as suffix to the shared variable name
 
 ```
 // share all variables onto channel 7 with renaming
-terminal A command line : pShare -o=’*->T:multicast_7’
+terminal A command line : pShare -o='*->T:multicast_7'
 terminal B command line : pShare -i=multicast_7
 ```
 which means a variable “X” will be shared as “TX” - the parameter T is acting as suffix. Similarly a variable called “donkey” would end up being shared in this example as “Tdonkey”.
@@ -339,7 +339,7 @@ pShare supports a special case of wildcard sharing in that it can forward a vari
 
 ```
 // A_X gets shared as A on multicast 7
-terminal A command line -o=’*_X->^:multicast_7’
+terminal A command line -o='*_X->^:multicast_7'
 terminal B command line -i=multicast_7
 ```
 Note in that in the kind of sharing the ’^’ means the part of the variable name which matches the single ’*’ wildcard character on the src filter. This wildcard character can only occur at the beginning or teh end of the variable pattern. So we can also have:
@@ -347,7 +347,7 @@ Note in that in the kind of sharing the ’^’ means the part of the variable n
 
 ```
 // A_X gets shared as X on multicast 7
-terminal A command line -o=’A_*->^:multicast_7’
+terminal A command line -o='A_*->^:multicast_7'
 terminal B command line -i=multicast_7
 ```
    
